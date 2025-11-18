@@ -1,5 +1,5 @@
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.tag_factory import simple_tag_class
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.tag_factory import simple_tag_class
 
 ListItem = simple_tag_class("li")
 Datalist = simple_tag_class("datalist")

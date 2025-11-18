@@ -1,7 +1,7 @@
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.media import (
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.media import (
     Image,
     Video,
     Audio,

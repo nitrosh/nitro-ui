@@ -1,7 +1,7 @@
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.core.parser import from_html
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.parser import from_html
 
 
 class TestHTMLParser(unittest.TestCase):

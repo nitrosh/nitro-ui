@@ -1,8 +1,8 @@
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.layout import Div
-from ydnatl.tags.text import Span, Paragraph
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.layout import Div
+from nitro_ui.tags.text import Span, Paragraph
 
 
 class TestHTMLElement(unittest.TestCase):

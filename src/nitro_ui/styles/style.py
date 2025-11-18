@@ -1,4 +1,4 @@
-"""CSS Style class for YDNATL."""
+"""CSS Style class for NitroUI."""
 
 from typing import Dict, Any
 

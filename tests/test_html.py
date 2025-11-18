@@ -1,7 +1,7 @@
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.html import (
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.html import (
     HTML,
     Head,
     Body,

@@ -1,4 +1,4 @@
-"""Theme class for YDNATL styling system."""
+"""Theme class for NitroUI styling system."""
 
 from typing import Dict, Optional, Any
 

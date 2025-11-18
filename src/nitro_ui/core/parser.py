@@ -1,13 +1,13 @@
-"""HTML Parser for YDNATL - Convert raw HTML to YDNATL elements."""
+"""HTML Parser for NitroUI - Convert raw HTML to NitroUI elements."""
 
 from html.parser import HTMLParser
 from typing import List, Optional, Union
 
-from ydnatl.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement
 
 
-class YDNATLHTMLParser(HTMLParser):
-    """Parse HTML and convert to YDNATL element tree."""
+class NitroUIHTMLParser(HTMLParser):
+    """Parse HTML and convert to NitroUI element tree."""
 
     VOID_ELEMENTS = {
         "area",
@@ -94,7 +94,7 @@ class YDNATLHTMLParser(HTMLParser):
 def from_html(
     html_string: str, fragment: bool = False
 ) -> Union[HTMLElement, List[HTMLElement], None]:
-    """Parse HTML string and convert to YDNATL element(s).
+    """Parse HTML string and convert to NitroUI element(s).
 
     Args:
         html_string: Raw HTML string to parse
@@ -105,7 +105,7 @@ def from_html(
         HTMLElement if fragment=False, List[HTMLElement] if fragment=True
 
     Example:
-        >>> from ydnatl.core.parser import from_html
+        >>> from nitro_ui.core.parser import from_html
         >>>
         >>> # Parse single element
         >>> element = from_html('<div class="container"><h1>Hello</h1></div>')
@@ -117,7 +117,7 @@ def from_html(
         >>> for el in elements:
         ...     print(el.render())
     """
-    parser = YDNATLHTMLParser()
+    parser = NitroUIHTMLParser()
 
     if fragment:
         return parser.parse_fragment(html_string)

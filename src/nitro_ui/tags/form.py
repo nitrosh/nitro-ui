@@ -1,5 +1,5 @@
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.tag_factory import simple_tag_class
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.tag_factory import simple_tag_class
 
 Textarea = simple_tag_class("textarea")
 BaseSelect = simple_tag_class("select")

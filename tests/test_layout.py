@@ -1,7 +1,7 @@
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.layout import (
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.layout import (
     Div,
     Section,
     Article,
@@ -15,7 +15,7 @@ from ydnatl.tags.layout import (
     Summary,
     Dialog,
 )
-from ydnatl.tags.text import Paragraph
+from nitro_ui.tags.text import Paragraph
 
 
 class TestLayoutTags(unittest.TestCase):

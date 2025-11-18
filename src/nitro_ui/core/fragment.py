@@ -1,6 +1,6 @@
 from typing import Union, List, Any
 
-from ydnatl.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement
 
 
 class Fragment(HTMLElement):

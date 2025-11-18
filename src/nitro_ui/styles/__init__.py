@@ -1,4 +1,4 @@
-"""YDNATL Styles Module - External stylesheet and theming support."""
+"""NitroUI Styles Module - External stylesheet and theming support."""
 
 from .style import CSSStyle
 from .stylesheet import StyleSheet

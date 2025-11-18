@@ -1,7 +1,7 @@
-"""Example demonstrating the StyleSheet system in YDNATL."""
+"""Example demonstrating the StyleSheet system in NitroUI."""
 
-from ydnatl import *
-from ydnatl.styles import CSSStyle, StyleSheet, Theme
+from nitro_ui import *
+from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 
 
 def basic_stylesheet_example():

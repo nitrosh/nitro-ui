@@ -1,9 +1,9 @@
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.core.fragment import Fragment
-from ydnatl.tags.layout import Div, Section
-from ydnatl.tags.text import H1, Paragraph, Span
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.fragment import Fragment
+from nitro_ui.tags.layout import Div, Section
+from nitro_ui.tags.text import H1, Paragraph, Span
 
 
 class TestFragment(unittest.TestCase):

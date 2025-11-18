@@ -1,24 +1,6 @@
-# YDNATL
+# NitroUI
 
-YDNATL (**Y**ou **D**on't **N**eed **A**nother **T**emplate **L**anguage) is a Python library that lets you build HTML using simple Python classes. It's great for apps that need HTML generation while skipping the hassle of writing it by hand or using a templating engine.
 
-- ✓ Declarative syntax for building HTML documents (like Flutter)
-- ✓ Easy to read and write
-- ✓ Supports all HTML5 elements
-- ✓ JSON serialization/deserialization for saving and loading UI structures
-- ✓ Pretty printing with indentation for readable HTML
-- ✓ CSS style helpers for easy inline styling
-- ✓ External stylesheet system with theming and BEM support
-- ✓ Method chaining for fluent interfaces
-- ✓ Context manager support for clean nesting
-- ✓ Fragment support for wrapper-free grouping
-- ✓ HTML parsing to convert raw HTML strings into YDNATL elements
-- ✓ Lightweight
-- ✓ Extremely fast
-- ✓ Fully customisable
-- ✓ Compose HTML efficiently
-- ✓ Lean & clean Python with no dependencies
-- ✓ LLM Compatible
 
 ## Requirements
 
@@ -27,13 +9,13 @@ Python `3.8` or higher is required.
 ## Installation
 
 ```bash
-pip install ydnatl
+pip install nitro-ui
 ```
 
 ## Usage
 
 ```python
-from ydnatl import *
+from NitroUI import *
 
 # Create a simple HTML document
 page = HTML(
@@ -71,7 +53,7 @@ This code will produce:
 ### Dynamic Composition 
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Dynamic content based on conditions
 day_of_week = "Monday"  # Example variable
@@ -103,7 +85,7 @@ All element classes are subclasses of HTMLElement. The parent class provides all
 ### Working with Attributes
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Add attributes via constructor
 div = Div(id="my-div", class_name="container", data_value="123")
@@ -117,10 +99,10 @@ div.add_attributes([("aria-label", "Main content"), ("tabindex", "0")])
 
 ### Pretty Printing
 
-YDNATL supports pretty printing with automatic indentation for readable HTML output:
+NitroUI supports pretty printing with automatic indentation for readable HTML output:
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 page = HTML(
     Head(Title("My Page")),
@@ -161,10 +143,10 @@ Pretty printing is perfect for:
 
 ### CSS Style Helpers
 
-YDNATL provides convenient methods for working with inline CSS styles:
+NitroUI provides convenient methods for working with inline CSS styles:
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Create element and add styles
 div = Div("Styled content")
@@ -192,13 +174,13 @@ div.remove_style("margin")
 
 ### External Stylesheet and Theming
 
-YDNATL includes a powerful styling system for managing external stylesheets, themes, and reusable component styles. This is perfect for building larger applications where you want to separate styles from markup.
+NitroUI includes a powerful styling system for managing external stylesheets, themes, and reusable component styles. This is perfect for building larger applications where you want to separate styles from markup.
 
 #### Basic StyleSheet Usage
 
 ```python
-from ydnatl import *
-from ydnatl.styles import CSSStyle, StyleSheet
+from nitro_ui import *
+from nitro_ui.styles import CSSStyle, StyleSheet
 
 # Create a stylesheet
 stylesheet = StyleSheet()
@@ -228,10 +210,10 @@ page = HTML(
 
 #### Theming Support
 
-YDNATL includes three preset themes (Modern, Classic, Minimal) with full CSS variable support:
+NitroUI includes three preset themes (Modern, Classic, Minimal) with full CSS variable support:
 
 ```python
-from ydnatl.styles import Theme, StyleSheet, CSSStyle
+from nitro_ui.styles import Theme, StyleSheet, CSSStyle
 
 # Use a preset theme
 theme = Theme.modern()  # or Theme.classic() or Theme.minimal()
@@ -261,7 +243,7 @@ card = stylesheet.register("card", CSSStyle(
 Built-in support for BEM (Block Element Modifier) naming:
 
 ```python
-from ydnatl.styles import StyleSheet, CSSStyle
+from nitro_ui.styles import StyleSheet, CSSStyle
 
 stylesheet = StyleSheet()
 
@@ -287,7 +269,7 @@ card_featured = stylesheet.register_bem("card", modifier="featured", style=CSSSt
 Add responsive styles with breakpoint support:
 
 ```python
-from ydnatl.styles import CSSStyle, StyleSheet
+from nitro_ui.styles import CSSStyle, StyleSheet
 
 stylesheet = StyleSheet()
 
@@ -335,7 +317,7 @@ See the [examples/stylesheet_example.py](examples/stylesheet_example.py) file fo
 All builder methods return `self`, enabling fluent method chaining:
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Chain multiple operations together
 container = (Div()
@@ -367,7 +349,7 @@ Chainable methods:
 Use elements as context managers for cleaner, more intuitive nesting:
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Using context managers
 with Div(id="container", class_name="main") as container:
@@ -386,7 +368,7 @@ print(container.render())
 Use `Fragment` to group elements without adding a wrapper tag:
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Without Fragment - adds extra div wrapper
 content = Div(
@@ -429,21 +411,21 @@ page = Div(
 
 ### HTML Parsing
 
-YDNATL can parse raw HTML strings and convert them into YDNATL elements. This is useful for importing existing HTML, migrating from other tools, or working with HTML from external sources.
+NitroUI can parse raw HTML strings and convert them into NitroUI elements. This is useful for importing existing HTML, migrating from other tools, or working with HTML from external sources.
 
 ```python
-from ydnatl import from_html, HTMLElement
+from nitro_ui import from_html, HTMLElement
 
 # Parse a single HTML element
-html_string = '<div class="container"><h1>Hello World</h1><p>Welcome to YDNATL</p></div>'
+html_string = '<div class="container"><h1>Hello World</h1><p>Welcome to NitroUI</p></div>'
 element = from_html(html_string)
 
-# Now you can work with it like any YDNATL element
+# Now you can work with it like any NitroUI element
 element.add_style("padding", "20px")
-element.append(Paragraph("Added via YDNATL"))
+element.append(Paragraph("Added via NitroUI"))
 
 print(element.render())
-# Output: <div class="container" style="padding: 20px"><h1>Hello World</h1><p>Welcome to YDNATL</p><p>Added via YDNATL</p></div>
+# Output: <div class="container" style="padding: 20px"><h1>Hello World</h1><p>Welcome to NitroUI</p><p>Added via NitroUI</p></div>
 
 # Alternative: use the class method
 element = HTMLElement.from_html(html_string)
@@ -452,7 +434,7 @@ element = HTMLElement.from_html(html_string)
 **Parsing HTML fragments** (multiple root elements):
 
 ```python
-from ydnatl import from_html
+from nitro_ui import from_html
 
 # HTML with multiple root elements
 html_fragment = '''
@@ -472,7 +454,7 @@ for el in elements:
 # p First paragraph
 # p Second paragraph
 
-# Combine with other YDNATL features
+# Combine with other NitroUI features
 container = Div()
 for el in elements:
     container.append(el)
@@ -493,16 +475,16 @@ print(container.render())
 - Import existing HTML into your website builder
 - Migrate from other HTML generation tools
 - Parse HTML templates from external sources
-- Convert HTML snippets to YDNATL for manipulation
+- Convert HTML snippets to NitroUI for manipulation
 - Testing and validation workflows
-- Combining static HTML with dynamic YDNATL generation
+- Combining static HTML with dynamic NitroUI generation
 
 ### JSON Serialization
 
-YDNATL supports JSON serialization and deserialization, making it perfect for drag-and-drop website builders, saving UI states, or transmitting page structures over APIs.
+NitroUI supports JSON serialization and deserialization, making it perfect for drag-and-drop website builders, saving UI states, or transmitting page structures over APIs.
 
 ```python
-from ydnatl import *
+from nitro_ui import *
 
 # Build a page structure
 page = Div(id="page", class_name="container")
@@ -519,7 +501,7 @@ json_data = page.to_json(indent=2)
 print(json_data)
 
 # Later... deserialize from JSON (for loading)
-from ydnatl.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement
 restored_page = HTMLElement.from_json(json_data)
 
 # Generate HTML (output will be identical)
@@ -577,7 +559,7 @@ For AI assistants and code generation tools, we provide a comprehensive technica
 
 ```python
 from fastapi import FastAPI
-from ydnatl import *
+from nitro_ui import *
 
 app = FastAPI()
 
@@ -600,7 +582,7 @@ async def root():
 
 ```python
 from django.http import HttpResponse
-from ydnatl import *
+from nitro_ui import *
 
 def index(request):
     return HttpResponse(HTML(
@@ -625,7 +607,7 @@ def index(request):
 
 ```python
 from flask import Flask
-from ydnatl import *
+from nitro_ui import *
 
 app = Flask(__name__)
 
@@ -646,7 +628,7 @@ def index():
 
 ## Test Coverage
 
-YDNATL has full test coverage. To run the tests locally, use:
+NitroUI has full test coverage. To run the tests locally, use:
 
 ```shell
 pytest
@@ -689,8 +671,8 @@ pytest
 - `instance.to_json(indent=None)` - Serialize to JSON string
 - `HTMLElement.from_dict(data)` - Reconstruct from dictionary (class method)
 - `HTMLElement.from_json(json_str)` - Reconstruct from JSON string (class method)
-- `HTMLElement.from_html(html_str, fragment=False)` - Parse HTML string to YDNATL element(s) (class method)
-- `from_html(html_str, fragment=False)` - Parse HTML string to YDNATL element(s) (function)
+- `HTMLElement.from_html(html_str, fragment=False)` - Parse HTML string to NitroUI element(s) (class method)
+- `from_html(html_str, fragment=False)` - Parse HTML string to NitroUI element(s) (function)
 
 ## Events
 
@@ -711,13 +693,13 @@ pytest
 
 | **Module**         | **Purpose**                       | **Key Elements**                                |
 |--------------------|-----------------------------------|-------------------------------------------------|
-| ydnatl.tags.form   | Common HTML form elements         | Form, Input, Button, Select, Textarea           |
-| ydnatl.tags.html   | Structural HTML document elements | HTML, Head, Body, Title, Meta, Script           |
-| ydnatl.tags.layout | Layout related HTML tags          | Div, Section, Header, Nav, Footer, Main         |
-| ydnatl.tags.lists  | HTML list elements                | UnorderedList, OrderedList, ListItem            |
-| ydnatl.tags.media  | Media related HTML elements       | Image, Video, Audio, Figure, Canvas             |
-| ydnatl.tags.table  | HTML table elements               | Table, TableRow, TableHeaderCell, TableDataCell |
-| ydnatl.tags.text   | HTML text elements                | H1-H6, Paragraph, Span, Strong, Em              |
+| nitro_ui.tags.form   | Common HTML form elements         | Form, Input, Button, Select, Textarea           |
+| nitro_ui.tags.html   | Structural HTML document elements | HTML, Head, Body, Title, Meta, Script           |
+| nitro_ui.tags.layout | Layout related HTML tags          | Div, Section, Header, Nav, Footer, Main         |
+| nitro_ui.tags.lists  | HTML list elements                | UnorderedList, OrderedList, ListItem            |
+| nitro_ui.tags.media  | Media related HTML elements       | Image, Video, Audio, Figure, Canvas             |
+| nitro_ui.tags.table  | HTML table elements               | Table, TableRow, TableHeaderCell, TableDataCell |
+| nitro_ui.tags.text   | HTML text elements                | H1-H6, Paragraph, Span, Strong, Em              |
 
 ## Importing
 
@@ -725,16 +707,16 @@ Instead of importing the entire module, you can selectively use only the element
 
 ```python
 # Instead of importing everything
-from ydnatl import *
+from nitro_ui import *
 
 # Import selectively for better performance and clarity
-from ydnatl.tags.form import Form, Button, Input
-from ydnatl.tags.html import HTML, Head, Body, Title
-from ydnatl.tags.layout import Div, Section
-from ydnatl.tags.text import H1, Paragraph
+from nitro_ui.tags.form import Form, Button, Input
+from nitro_ui.tags.html import HTML, Head, Body, Title
+from nitro_ui.tags.layout import Div, Section
+from nitro_ui.tags.text import H1, Paragraph
 ```
 
-#### ydnatl.tags.form
+#### nitro_ui.tags.form
 
 - `Form()`
 - `Input()`
@@ -750,7 +732,7 @@ from ydnatl.tags.text import H1, Paragraph
 - `Progress()`
 - `Meter()`
 
-#### ydnatl.tags.html
+#### nitro_ui.tags.html
 
 - `HTML()`
 - `Head()`
@@ -764,7 +746,7 @@ from ydnatl.tags.text import H1, Paragraph
 - `Noscript()`
 - `IFrame()`
 
-#### ydnatl.tags.layout
+#### nitro_ui.tags.layout
 
 - `Div()`
 - `Section()`
@@ -779,7 +761,7 @@ from ydnatl.tags.text import H1, Paragraph
 - `Summary()`
 - `Dialog()`
 
-#### ydnatl.tags.lists
+#### nitro_ui.tags.lists
 
 - `UnorderedList()`
 - `OrderedList()`
@@ -789,7 +771,7 @@ from ydnatl.tags.text import H1, Paragraph
 - `DescriptionList()`
 - `DescriptionTerm()`
 
-#### ydnatl.tags.media
+#### nitro_ui.tags.media
 
 - `Image()`
 - `Video()`
@@ -806,7 +788,7 @@ from ydnatl.tags.text import H1, Paragraph
 - `Map()`
 - `Area()`
 
-#### ydnatl.tags.table
+#### nitro_ui.tags.table
 
 - `Table()`
 - `TableFooter()`
@@ -819,7 +801,7 @@ from ydnatl.tags.text import H1, Paragraph
 - `Col()`
 - `Colgroup()`
 
-#### ydnatl.tags.text
+#### nitro_ui.tags.text
 
 - `H1()`
 - `H2()`
@@ -860,7 +842,7 @@ from ydnatl.tags.text import H1, Paragraph
 
 ```python
 
-from ydnatl import *
+from nitro_ui import *
 
 class MyTag(HTMLElement):
     def __init__(self, *args, **kwargs):
@@ -908,7 +890,7 @@ You can take this further and construct an entire page as a component where ever
 
 Contributions, suggestions and improvements are all welcome. 
 
-#### Developing YDNATL
+#### Developing NitroUI
 
 1. Create a virtual environment
 

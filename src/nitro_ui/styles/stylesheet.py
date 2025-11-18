@@ -1,4 +1,4 @@
-"""StyleSheet class for managing CSS classes in YDNATL."""
+"""StyleSheet class for managing CSS classes in NitroUI."""
 
 from typing import Dict, Optional, List, TYPE_CHECKING
 

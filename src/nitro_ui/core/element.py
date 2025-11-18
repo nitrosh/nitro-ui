@@ -35,7 +35,7 @@ class HTMLElement:
         self._self_closing: bool = self_closing
         self._styles_cache: Union[dict, None] = None
 
-        if os.environ.get("YDNATL_GENERATE_IDS"):
+        if os.environ.get("NITRO_UI_GENERATE_IDS"):
             self.generate_id()
 
         # Batch text children to avoid repeated string concatenation

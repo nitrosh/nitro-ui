@@ -1,4 +1,4 @@
-from ydnatl.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement
 
 
 # Factory function to create simple tag classes

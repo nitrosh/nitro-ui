@@ -4,8 +4,8 @@ import os
 import tempfile
 import unittest
 
-from ydnatl.core.element import HTMLElement
-from ydnatl.tags.table import (
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.tags.table import (
     Table,
     TableFooter,
     TableHeaderCell,

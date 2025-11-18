@@ -1,6 +1,6 @@
-"""Tests for YDNATL styling system."""
+"""Tests for NitroUI styling system."""
 
-from ydnatl.styles import CSSStyle, StyleSheet, Theme
+from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 
 
 class TestCSSStyle:

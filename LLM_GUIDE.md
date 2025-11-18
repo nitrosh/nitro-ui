@@ -1,4 +1,4 @@
-# YDNATL - LLM Developer Guide
+# Nitro UI - LLM Developer Guide
 
 **Version:** 1.0.x
 **Language:** Python 3.8+
@@ -6,7 +6,7 @@
 
 ## Overview
 
-YDNATL (You Don't Need Another Template Language) is a Python library for programmatic HTML generation. It uses a declarative, class-based API similar to Flutter's widget system. All elements are subclasses of `HTMLElement` and support method chaining, context managers, and serialization.
+Nitro UI s a Python library for programmatic HTML generation. It uses a declarative, class-based API similar to Flutter's widget system. All elements are subclasses of `HTMLElement` and support method chaining, context managers, and serialization.
 
 ## Core Concepts
 
@@ -33,29 +33,29 @@ YDNATL (You Don't Need Another Template Language) is a Python library for progra
 
 ### Import Everything (Quick Start)
 ```python
-from ydnatl import *
+from nitro_ui import *
 ```
 
 ### Selective Imports (Recommended for Production)
 ```python
-from ydnatl import HTMLElement, Fragment, from_html
-from ydnatl.tags.text import H1, Paragraph, Span
-from ydnatl.tags.layout import Div, Section
-from ydnatl.tags.form import Form, Input, Button
+from nitro_ui import HTMLElement, Fragment, from_html
+from nitro_ui.tags.text import H1, Paragraph, Span
+from nitro_ui.tags.layout import Div, Section
+from nitro_ui.tags.form import Form, Input, Button
 ```
 
 ### Import from Core
 ```python
-from ydnatl.core.element import HTMLElement
-from ydnatl.core.fragment import Fragment
-from ydnatl.core.parser import from_html
+from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.fragment import Fragment
+from nitro_ui.core.parser import from_html
 ```
 
 ---
 
 ## HTMLElement Class
 
-**Location:** `ydnatl.core.element.HTMLElement`
+**Location:** `nitro_ui.core.element.HTMLElement`
 
 ### Constructor
 
@@ -516,7 +516,7 @@ element = HTMLElement.from_json(json_str)
 - `ValueError` if JSON is invalid
 
 ### from_html(html_str: str, fragment: bool = False) → Union[HTMLElement, List[HTMLElement]] (classmethod)
-Parses HTML string to YDNATL element(s).
+Parses HTML string to NitroUI element(s).
 
 ```python
 # Single element
@@ -540,12 +540,12 @@ elements = HTMLElement.from_html('<h1>Title</h1><p>Text</p>', fragment=True)
 
 ### from_html(html_str: str, fragment: bool = False) → Union[HTMLElement, List[HTMLElement], None]
 
-**Location:** `ydnatl.core.parser.from_html` or `ydnatl.from_html`
+**Location:** `nitro_ui.core.parser.from_html` or `nitro_ui.from_html`
 
 Standalone function for parsing HTML strings.
 
 ```python
-from ydnatl import from_html
+from nitro_ui import from_html
 
 # Parse single element
 element = from_html('<div>Content</div>')
@@ -649,7 +649,7 @@ class MyElement(HTMLElement):
 
 ## Fragment Class
 
-**Location:** `ydnatl.core.fragment.Fragment`
+**Location:** `nitro_ui.core.fragment.Fragment`
 
 Special element that renders only its children without a wrapper tag.
 
@@ -664,7 +664,7 @@ Fragment(*children, **kwargs)
 ### Usage
 
 ```python
-from ydnatl import Fragment, H1, Paragraph
+from nitro_ui import Fragment, H1, Paragraph
 
 # Without Fragment - adds wrapper
 content = Div(H1("Title"), Paragraph("Text"))
@@ -690,7 +690,7 @@ All tag classes follow the same constructor pattern as HTMLElement:
 TagName(*children, **attributes)
 ```
 
-### ydnatl.tags.text
+### nitro_ui.tags.text
 
 **Headings:**
 - `H1(*children, **attributes)`
@@ -736,7 +736,7 @@ TagName(*children, **attributes)
 - `Br(**attributes)` - `<br>` (self-closing)
 - `Wbr(**attributes)` - `<wbr>` (self-closing)
 
-### ydnatl.tags.layout
+### nitro_ui.tags.layout
 
 - `Div(*children, **attributes)` - `<div>`
 - `Section(*children, **attributes)` - `<section>`
@@ -751,7 +751,7 @@ TagName(*children, **attributes)
 - `Summary(*children, **attributes)` - `<summary>`
 - `Dialog(*children, **attributes)` - `<dialog>`
 
-### ydnatl.tags.form
+### nitro_ui.tags.form
 
 - `Form(*children, **attributes)` - `<form>`
 - `Input(**attributes)` - `<input>` (self-closing)
@@ -767,7 +767,7 @@ TagName(*children, **attributes)
 - `Progress(*children, **attributes)` - `<progress>`
 - `Meter(*children, **attributes)` - `<meter>`
 
-### ydnatl.tags.lists
+### nitro_ui.tags.lists
 
 - `UnorderedList(*children, **attributes)` - `<ul>`
 - `OrderedList(*children, **attributes)` - `<ol>`
@@ -777,7 +777,7 @@ TagName(*children, **attributes)
 - `DescriptionTerm(*children, **attributes)` - `<dt>`
 - `DescriptionDetails(*children, **attributes)` - `<dd>`
 
-### ydnatl.tags.table
+### nitro_ui.tags.table
 
 - `Table(*children, **attributes)` - `<table>`
 - `TableHeader(*children, **attributes)` - `<thead>`
@@ -817,7 +817,7 @@ Creates table from CSV file.
 table = Table.from_csv("data.csv", class_name="data-table")
 ```
 
-### ydnatl.tags.media
+### nitro_ui.tags.media
 
 - `Image(**attributes)` - `<img>` (self-closing)
 - `Video(*children, **attributes)` - `<video>`
@@ -834,7 +834,7 @@ table = Table.from_csv("data.csv", class_name="data-table")
 - `Map(*children, **attributes)` - `<map>`
 - `Area(**attributes)` - `<area>` (self-closing)
 
-### ydnatl.tags.html
+### nitro_ui.tags.html
 
 - `HTML(*children, **attributes)` - `<html>` (includes DOCTYPE)
 - `Head(*children, **attributes)` - `<head>`
@@ -853,11 +853,11 @@ table = Table.from_csv("data.csv", class_name="data-table")
 
 ---
 
-## Styling System (ydnatl.styles)
+## Styling System (nitro_ui.styles)
 
-**Location:** `ydnatl.styles`
+**Location:** `nitro_ui.styles`
 
-YDNATL includes a comprehensive styling system for managing external stylesheets, themes, and reusable component styles. This complements the existing inline style methods and is perfect for larger applications.
+NitroUI includes a comprehensive styling system for managing external stylesheets, themes, and reusable component styles. This complements the existing inline style methods and is perfect for larger applications.
 
 ### Key Features
 
@@ -873,17 +873,17 @@ YDNATL includes a comprehensive styling system for managing external stylesheets
 
 ```python
 # Import styling classes
-from ydnatl.styles import CSSStyle, StyleSheet, Theme
+from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 
 # Or from main module
-from ydnatl import CSSStyle, StyleSheet, Theme
+from nitro_ui import CSSStyle, StyleSheet, Theme
 ```
 
 ---
 
 ## CSSStyle Class
 
-**Location:** `ydnatl.styles.CSSStyle`
+**Location:** `nitro_ui.styles.CSSStyle`
 
 Represents CSS styles with support for pseudo-selectors and responsive breakpoints.
 
@@ -1027,7 +1027,7 @@ Supported breakpoints (prefix with `_`):
 
 ## StyleSheet Class
 
-**Location:** `ydnatl.styles.StyleSheet`
+**Location:** `nitro_ui.styles.StyleSheet`
 
 Manages CSS classes and generates `<style>` tag content.
 
@@ -1228,7 +1228,7 @@ stylesheet = StyleSheet.from_dict(data, theme=Theme.modern())
 
 ## Theme Class
 
-**Location:** `ydnatl.styles.Theme`
+**Location:** `nitro_ui.styles.Theme`
 
 Represents a design theme with colors, typography, spacing, and component styles.
 
@@ -1365,8 +1365,8 @@ theme = Theme.from_dict(data)
 ### Pattern 1: Basic StyleSheet Usage
 
 ```python
-from ydnatl import HTML, Head, Body, Button, Style
-from ydnatl.styles import CSSStyle, StyleSheet
+from nitro_ui import HTML, Head, Body, Button, Style
+from nitro_ui.styles import CSSStyle, StyleSheet
 
 # Create stylesheet
 stylesheet = StyleSheet()
@@ -1395,8 +1395,8 @@ page = HTML(
 ### Pattern 2: Using Themes
 
 ```python
-from ydnatl import HTML, Head, Body, Div, Button, Style
-from ydnatl.styles import Theme, StyleSheet, CSSStyle
+from nitro_ui import HTML, Head, Body, Div, Button, Style
+from nitro_ui.styles import Theme, StyleSheet, CSSStyle
 
 # Use preset theme
 theme = Theme.modern()
@@ -1432,8 +1432,8 @@ page = HTML(
 ### Pattern 3: BEM Naming
 
 ```python
-from ydnatl import Div
-from ydnatl.styles import StyleSheet, CSSStyle
+from nitro_ui import Div
+from nitro_ui.styles import StyleSheet, CSSStyle
 
 stylesheet = StyleSheet()
 
@@ -1467,7 +1467,7 @@ html = Div(
 ### Pattern 4: Responsive Styles
 
 ```python
-from ydnatl.styles import StyleSheet, CSSStyle
+from nitro_ui.styles import StyleSheet, CSSStyle
 
 stylesheet = StyleSheet()
 
@@ -1490,8 +1490,8 @@ container = stylesheet.register("container", CSSStyle(
 ### Pattern 5: Combining with Inline Styles
 
 ```python
-from ydnatl import Button
-from ydnatl.styles import StyleSheet, CSSStyle
+from nitro_ui import Button
+from nitro_ui.styles import StyleSheet, CSSStyle
 
 stylesheet = StyleSheet()
 
@@ -1519,7 +1519,7 @@ button2 = Button("Green Button", class_name=btn).add_styles({
 ### Pattern 6: Serialization for Website Builders
 
 ```python
-from ydnatl.styles import StyleSheet, CSSStyle
+from nitro_ui.styles import StyleSheet, CSSStyle
 import json
 
 # Create and populate stylesheet
@@ -1543,8 +1543,8 @@ css = restored_stylesheet.render()
 ### Pattern 7: Custom Component with Styles
 
 ```python
-from ydnatl import HTMLElement, Div, H2, Paragraph
-from ydnatl.styles import StyleSheet, CSSStyle
+from nitro_ui import HTMLElement, Div, H2, Paragraph
+from nitro_ui.styles import StyleSheet, CSSStyle
 
 class StyledCard(HTMLElement):
     def __init__(self, title, content, stylesheet, **kwargs):
@@ -1582,7 +1582,7 @@ card2 = StyledCard("Title 2", "Content 2", stylesheet)
 ### Pattern 1: Building a Complete Page
 
 ```python
-from ydnatl import HTML, Head, Body, Title, Meta, Div, H1, Paragraph
+from nitro_ui import HTML, Head, Body, Title, Meta, Div, H1, Paragraph
 
 page = HTML(
     Head(
@@ -1605,7 +1605,7 @@ html_string = page.render(pretty=True)
 ### Pattern 2: Dynamic Content with Conditionals
 
 ```python
-from ydnatl import Div, H1, Paragraph
+from nitro_ui import Div, H1, Paragraph
 
 def create_section(title, content, show_header=True):
     section = Div(class_name="section")
@@ -1624,7 +1624,7 @@ section = create_section("About", "Some content", show_header=True)
 ### Pattern 3: Lists with Iteration
 
 ```python
-from ydnatl import UnorderedList, ListItem
+from nitro_ui import UnorderedList, ListItem
 
 items = ["Apple", "Banana", "Orange"]
 
@@ -1633,7 +1633,7 @@ for item in items:
     ul.append(ListItem(item))
 
 # Or using Fragment
-from ydnatl import Fragment
+from nitro_ui import Fragment
 
 fragment = Fragment()
 for item in items:
@@ -1645,7 +1645,7 @@ ul = UnorderedList(fragment)
 ### Pattern 4: Method Chaining
 
 ```python
-from ydnatl import Div, H1, Paragraph
+from nitro_ui import Div, H1, Paragraph
 
 container = (Div()
     .add_attribute("id", "main")
@@ -1660,7 +1660,7 @@ container = (Div()
 ### Pattern 5: Context Managers
 
 ```python
-from ydnatl import Div, Section, H1, Paragraph
+from nitro_ui import Div, Section, H1, Paragraph
 
 with Div(id="container") as container:
     with Section(class_name="content") as section:
@@ -1675,7 +1675,7 @@ html = container.render()
 ### Pattern 6: Forms
 
 ```python
-from ydnatl import Form, Label, Input, Button
+from nitro_ui import Form, Label, Input, Button
 
 form = Form(action="/submit", method="post")
 form.append(
@@ -1688,8 +1688,8 @@ form.append(
 ### Pattern 7: Tables from Data
 
 ```python
-from ydnatl import Table, TableHeader, TableBody, TableRow
-from ydnatl import TableHeaderCell, TableDataCell
+from nitro_ui import Table, TableHeader, TableBody, TableRow
+from nitro_ui import TableHeaderCell, TableDataCell
 
 data = [
     {"name": "Alice", "age": 30},
@@ -1717,7 +1717,7 @@ table.append(tbody)
 ### Pattern 8: Parsing and Modifying HTML
 
 ```python
-from ydnatl import from_html
+from nitro_ui import from_html
 
 # Parse existing HTML
 html_str = '<div class="old"><h1>Title</h1></div>'
@@ -1735,7 +1735,7 @@ new_html = element.render()
 ### Pattern 9: Serialization for Storage
 
 ```python
-from ydnatl import Div, H1, Paragraph, HTMLElement
+from nitro_ui import Div, H1, Paragraph, HTMLElement
 
 # Create element tree
 page = Div(
@@ -1758,7 +1758,7 @@ html = loaded_page.render()
 ### Pattern 10: Custom Components
 
 ```python
-from ydnatl import HTMLElement, Div, H2, Paragraph
+from nitro_ui import HTMLElement, Div, H2, Paragraph
 
 class Card(HTMLElement):
     def __init__(self, title, content, **kwargs):
@@ -1949,7 +1949,7 @@ if value is None:
 
 ### HTML Escaping
 
-YDNATL automatically escapes HTML entities in:
+NitroUI automatically escapes HTML entities in:
 - Text content
 - Attribute values
 
@@ -1965,14 +1965,14 @@ div = Div(data_value='<script>alert("xss")</script>')
 
 ### No Raw HTML Injection
 
-YDNATL does not support raw HTML injection. All content is escaped. This prevents XSS attacks.
+NitroUI does not support raw HTML injection. All content is escaped. This prevents XSS attacks.
 
 ---
 
 ## Complete Example: Blog Post Page
 
 ```python
-from ydnatl import (
+from nitro_ui import (
     HTML, Head, Body, Title, Meta, HtmlLink,
     Div, Section, Article, Header, Footer, Nav,
     H1, H2, Paragraph, Link, UnorderedList, ListItem
@@ -2124,7 +2124,7 @@ Image(src="pic.jpg"), Video(src="vid.mp4")
 
 ## End of LLM Guide
 
-This guide provides complete technical specifications for the YDNATL library. When generating code:
+This guide provides complete technical specifications for the NitroUI library. When generating code:
 
 1. Use the exact method signatures provided
 2. Follow the patterns demonstrated
