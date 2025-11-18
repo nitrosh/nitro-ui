@@ -1,6 +1,6 @@
 # NitroUI
 
-
+NitroUI is a lightweight Python library for programmatically generating HTML documents using a clean, object-oriented approach. It provides a comprehensive set of HTML elements as Python classes, allowing developers to build complex web pages with ease. Fully compatible with LLM's.
 
 ## Requirements
 
@@ -15,7 +15,7 @@ pip install nitro-ui
 ## Usage
 
 ```python
-from NitroUI import *
+from nitro_ui import *
 
 # Create a simple HTML document
 page = HTML(

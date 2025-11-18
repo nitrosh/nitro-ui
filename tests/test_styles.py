@@ -364,7 +364,7 @@ class TestIntegration:
         stylesheet = StyleSheet(theme=theme)
 
         # Register component styles
-        btn_primary = stylesheet.register(
+        stylesheet.register(
             "btn-primary",
             CSSStyle(
                 background_color="var(--color-primary)",

@@ -9,7 +9,14 @@ T = TypeVar("T", bound="HTMLElement")
 
 
 class HTMLElement:
-    __slots__ = ["_tag", "_children", "_text", "_attributes", "_self_closing", "_styles_cache"]
+    __slots__ = [
+        "_tag",
+        "_children",
+        "_text",
+        "_attributes",
+        "_self_closing",
+        "_styles_cache",
+    ]
 
     def __init__(
         self,
