@@ -61,16 +61,21 @@ from nitro_ui.core.parser import from_html
 
 ```python
 HTMLElement(
-    *children,           # Variable number of child elements or text
-    tag: str = "div",   # HTML tag name
-    text: str = "",     # Text content
+    *children,           # Variable number of child elements, text strings, or nested lists
+    tag: str,           # HTML tag name (REQUIRED - no default)
     self_closing: bool = False,  # Whether element is self-closing
     **attributes        # HTML attributes as keyword arguments
 )
 ```
 
+**Important Notes:**
+- `tag` parameter is **required** (no default value)
+- Text content comes from `*children` (there is no separate `text` parameter)
+- Children can be HTMLElement instances, strings, or nested lists (automatically flattened)
+
 **Special Attribute Handling:**
 - `class_name` → renders as `class` attribute
+- `for_element` → renders as `for` attribute
 - `data_*` attributes → preserved with hyphens (data-value)
 - Boolean attributes (checked, disabled) → rendered without values when True
 - `style` → can be string or managed via style helper methods
@@ -141,16 +146,17 @@ div.clear()  # Now has no children
 
 **Returns:** self (for chaining)
 
-#### pop(index: int = -1) → HTMLElement
+#### pop(index: int = 0) → HTMLElement
 Removes and returns child at index.
 
 ```python
-last_child = div.pop()      # Remove last child
-first_child = div.pop(0)    # Remove first child
+first_child = div.pop()     # Remove first child (default)
+last_child = div.pop(-1)    # Remove last child
+second = div.pop(1)         # Remove child at index 1
 ```
 
 **Parameters:**
-- `index`: int (default: -1) - Index of child to remove
+- `index`: int (default: 0) - Index of child to remove
 
 **Returns:** Removed HTMLElement
 
@@ -231,18 +237,21 @@ count = div.count_children()
 
 ### Modifying Children
 
-#### replace_child(index: int, new_child: HTMLElement) → self
+#### replace_child(old_index: int, new_child: HTMLElement) → None
 Replaces child at index with new child.
+
+**⚠️ Note:** This method returns `None` and does NOT support method chaining.
 
 ```python
 div.replace_child(0, H1("New Title"))
+# Cannot chain: div.replace_child(0, H1("Title")).append(...) # ERROR!
 ```
 
 **Parameters:**
-- `index`: int - Index of child to replace
+- `old_index`: int - Index of child to replace
 - `new_child`: HTMLElement - New child element
 
-**Returns:** self (for chaining)
+**Returns:** None
 
 ---
 
@@ -329,14 +338,17 @@ some_attrs = div.get_attributes("id", "class_name")
 
 **Returns:** Dict[str, str]
 
-### generate_id() → str
+### generate_id() → None
 Generates unique ID if element doesn't have one.
 
+**⚠️ Note:** This method returns `None`. To get the ID after generation, use `get_attribute("id")`.
+
 ```python
-element_id = div.generate_id()  # Returns existing or generates new
+div.generate_id()  # Generates ID but returns None
+element_id = div.get_attribute("id")  # Get the generated ID
 ```
 
-**Returns:** str - The element's ID
+**Returns:** None
 
 ---
 
@@ -792,30 +804,34 @@ TagName(*children, **attributes)
 
 **Special Table Methods:**
 
-#### Table.from_json(file_path: str, **table_attrs)
-Creates table from JSON file.
+#### Table.from_json(file_path: str, encoding: str = "utf-8")
+Creates table from JSON file. First row is treated as headers.
 
 ```python
-table = Table.from_json("data.json", class_name="data-table")
+table = Table.from_json("data.json")
+table = Table.from_json("data.json", encoding="utf-8")
 ```
 
 **JSON Format:**
 ```json
-{
-  "headers": ["Name", "Age", "City"],
-  "rows": [
-    ["Alice", "30", "NYC"],
-    ["Bob", "25", "LA"]
-  ]
-}
+[
+  ["Name", "Age", "City"],
+  ["Alice", "30", "NYC"],
+  ["Bob", "25", "LA"]
+]
 ```
 
-#### Table.from_csv(file_path: str, **table_attrs)
-Creates table from CSV file.
+**Note:** The JSON file should contain a list of lists. The first sublist is used as table headers (in `<thead>`), and remaining sublists become table rows (in `<tbody>`). To add attributes to the table, use method chaining after creation (e.g., `Table.from_json("data.json").add_class("data-table")`).
+
+#### Table.from_csv(file_path: str, encoding: str = "utf-8")
+Creates table from CSV file. First row is treated as headers.
 
 ```python
-table = Table.from_csv("data.csv", class_name="data-table")
+table = Table.from_csv("data.csv")
+table = Table.from_csv("data.csv", encoding="utf-8")
 ```
+
+**Note:** The CSV file's first row becomes table headers (in `<thead>`), and remaining rows become table rows (in `<tbody>`). To add attributes to the table, use method chaining after creation (e.g., `Table.from_csv("data.csv").add_class("data-table")`).
 
 ### nitro_ui.tags.media
 
@@ -1012,6 +1028,9 @@ Supported pseudo-selectors (prefix with `_`):
 - `_link` → `:link`
 - `_first_child` → `:first-child`
 - `_last_child` → `:last-child`
+- `_nth_child` → `:nth-child()`
+- `_before` → `::before`
+- `_after` → `::after`
 
 ### Breakpoints
 
@@ -1796,9 +1815,8 @@ from typing import Optional, List, Dict, Union, Callable, Iterator, Tuple, Any
 # Constructor
 def __init__(
     self,
-    *children: Union['HTMLElement', str],
-    tag: str = "div",
-    text: str = "",
+    *children: Union['HTMLElement', str, List[Any]],
+    tag: str,  # Required - no default
     self_closing: bool = False,
     **attributes: str
 ) -> None: ...
@@ -1807,7 +1825,7 @@ def __init__(
 def append(self, *children: Union['HTMLElement', str]) -> 'HTMLElement': ...
 def prepend(self, *children: Union['HTMLElement', str]) -> 'HTMLElement': ...
 def clear(self) -> 'HTMLElement': ...
-def pop(self, index: int = -1) -> 'HTMLElement': ...
+def pop(self, index: int = 0) -> 'HTMLElement': ...
 def remove_all(self, condition: Callable[['HTMLElement'], bool]) -> 'HTMLElement': ...
 
 # Querying
@@ -1850,8 +1868,8 @@ def from_html(cls, html_str: str, fragment: bool = False) -> Union['HTMLElement'
 
 # Utility
 def clone(self) -> 'HTMLElement': ...
-def replace_child(self, index: int, new_child: 'HTMLElement') -> 'HTMLElement': ...
-def generate_id(self) -> str: ...
+def replace_child(self, old_index: int, new_child: 'HTMLElement') -> None: ...
+def generate_id(self) -> None: ...
 
 # Context manager
 def __enter__(self) -> 'HTMLElement': ...
