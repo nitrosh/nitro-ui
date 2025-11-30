@@ -19,7 +19,7 @@ from nitro_ui.tags.text import (
     Strong,
     Bold,
     Abbr,
-    Link,
+    Href,
     Small,
     Superscript,
     Subscript,
@@ -145,11 +145,11 @@ class TestTextTags(unittest.TestCase):
             str(abbr), '<abbr title="HyperText Markup Language">HTML</abbr>'
         )
 
-    def test_link(self):
-        """Test the creation of a link element."""
-        link = Link("Visit Google", href="https://www.google.com")
-        self.assertEqual(link.tag, "a")
-        self.assertEqual(str(link), '<a href="https://www.google.com">Visit Google</a>')
+    def test_href(self):
+        """Test the creation of an href element."""
+        href = Href("Visit Google", href="https://www.google.com")
+        self.assertEqual(href.tag, "a")
+        self.assertEqual(str(href), '<a href="https://www.google.com">Visit Google</a>')
 
     def test_small(self):
         """Test the creation of a small element."""
@@ -287,7 +287,7 @@ class TestTextTags(unittest.TestCase):
             Strong,
             Bold,
             Abbr,
-            Link,
+            Href,
             Small,
             Superscript,
             Subscript,
