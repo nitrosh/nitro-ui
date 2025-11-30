@@ -744,7 +744,7 @@ TagName(*children, **attributes)
 - `Time(*children, **attributes)` - `<time>`
 
 **Links & Line Breaks:**
-- `Link(*children, **attributes)` - `<a>`
+- `Href(*children, **attributes)` - `<a>`
 - `Br(**attributes)` - `<br>` (self-closing)
 - `Wbr(**attributes)` - `<wbr>` (self-closing)
 
@@ -858,7 +858,6 @@ table = Table.from_csv("data.csv", encoding="utf-8")
 - `Title(*children, **attributes)` - `<title>`
 - `Meta(**attributes)` - `<meta>` (self-closing)
 - `Link(**attributes)` - `<link>` (self-closing)
-- `HtmlLink(**attributes)` - Alias for Link (avoid conflicts)
 - `Script(*children, **attributes)` - `<script>`
 - `Style(*children, **attributes)` - `<style>`
 - `Base(**attributes)` - `<base>` (self-closing)
@@ -1991,9 +1990,9 @@ NitroUI does not support raw HTML injection. All content is escaped. This preven
 
 ```python
 from nitro_ui import (
-    HTML, Head, Body, Title, Meta, HtmlLink,
+    HTML, Head, Body, Title, Meta, Link,
     Div, Section, Article, Header, Footer, Nav,
-    H1, H2, Paragraph, Link, UnorderedList, ListItem
+    H1, H2, Paragraph, Href, UnorderedList, ListItem
 )
 
 def create_blog_post(title, author, date, content):
@@ -2015,16 +2014,16 @@ def create_page(posts):
             Title("My Blog"),
             Meta(charset="utf-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1"),
-            HtmlLink(rel="stylesheet", href="/style.css")
+            Link(rel="stylesheet", href="/style.css")
         ),
         Body(
             Header(
                 H1("My Blog", class_name="site-title"),
                 Nav(
                     UnorderedList(
-                        ListItem(Link("Home", href="/")),
-                        ListItem(Link("About", href="/about")),
-                        ListItem(Link("Contact", href="/contact"))
+                        ListItem(Href("Home", href="/")),
+                        ListItem(Href("About", href="/about")),
+                        ListItem(Href("Contact", href="/contact"))
                     )
                 )
             ),

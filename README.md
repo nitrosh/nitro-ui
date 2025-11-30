@@ -590,7 +590,7 @@ def index(request):
             Title("My Page"),
             Meta(charset="utf-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            HtmlLink(rel="stylesheet", href="style.css"),
+            Link(rel="stylesheet", href="style.css"),
             Script(src="script.js")
         ),
         Body(
@@ -740,7 +740,7 @@ from nitro_ui.tags.text import H1, Paragraph
 - `Title()`
 - `Meta()`
 - `Base()`
-- `HtmlLink()` (use instead of `Link()` to avoid conflicts)
+- `Link()`
 - `Script()`
 - `Style()`
 - `Noscript()`
@@ -820,7 +820,7 @@ from nitro_ui.tags.text import H1, Paragraph
 - `Strong()`
 - `Bold()`
 - `Abbr()`
-- `Link()`
+- `Href()`
 - `Small()`
 - `Superscript()`
 - `Subscript()`
