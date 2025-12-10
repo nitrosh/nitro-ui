@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-ui"
-version = "1.0.1"
-description = "Pure Python library for programmatic HTML generation with declarative class-based API, comprehensive styling system, and JSON serialization. Zero dependencies."
+version = "1.0.2"
+description = "Build HTML with Python, not strings. Zero-dependency library with type-safe elements, method chaining, and JSON serialization."
 readme = "README.md"
 requires-python = ">=3.8"
 license-files = ["LICEN[CS]E*"]
@@ -16,7 +16,7 @@ classifiers = [
     "Operating System :: OS Independent",
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
