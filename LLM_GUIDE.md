@@ -51,6 +51,93 @@ from nitro_ui.core.fragment import Fragment
 from nitro_ui.core.parser import from_html
 ```
 
+### Lowercase HTML-like Imports (Alternative Syntax)
+
+NitroUI provides an alternative import style using lowercase names that mirror actual HTML tags:
+
+```python
+from nitro_ui.html import div, h1, p, ul, li, a, img, table, tr, td
+
+# Code looks like HTML
+page = div(
+    h1("Welcome"),
+    p("This looks just like HTML!"),
+    ul(
+        li(a("Home", href="/")),
+        li(a("About", href="/about")),
+    ),
+    class_name="container"
+)
+```
+
+**Tag Name Mappings:**
+
+| PascalCase | Lowercase | HTML Tag |
+|------------|-----------|----------|
+| `Paragraph` | `p` | `<p>` |
+| `Href` | `a` | `<a>` |
+| `Image` | `img` | `<img>` |
+| `UnorderedList` | `ul` | `<ul>` |
+| `OrderedList` | `ol` | `<ol>` |
+| `ListItem` | `li` | `<li>` |
+| `Bold` | `b` | `<b>` |
+| `Italic` | `i` | `<i>` |
+| `Underline` | `u` | `<u>` |
+| `Strikethrough` | `s` | `<s>` |
+| `Superscript` | `sup` | `<sup>` |
+| `Subscript` | `sub` | `<sub>` |
+| `TableRow` | `tr` | `<tr>` |
+| `TableDataCell` | `td` | `<td>` |
+| `TableHeaderCell` | `th` | `<th>` |
+| `TableHeader` | `thead` | `<thead>` |
+| `TableBody` | `tbody` | `<tbody>` |
+| `TableFooter` | `tfoot` | `<tfoot>` |
+| `HorizontalRule` | `hr` | `<hr>` |
+| `DescriptionList` | `dl` | `<dl>` |
+| `DescriptionTerm` | `dt` | `<dt>` |
+| `DescriptionDetails` | `dd` | `<dd>` |
+| `Quote` | `q` | `<q>` |
+
+**Python Keyword/Builtin Conflicts:**
+
+Some HTML tags conflict with Python keywords or builtins. These use a trailing underscore:
+
+```python
+from nitro_ui.html import del_, input_, object_, map_
+
+deleted_text = del_("removed")           # <del>
+text_field = input_(type="text")         # <input>
+embedded = object_(data="movie.swf")     # <object>
+image_map = map_(name="nav")             # <map>
+```
+
+**Complete Lowercase Module:**
+
+```python
+from nitro_ui.html import (
+    # Core
+    HTMLElement, Fragment, from_html,
+    # Styles
+    CSSStyle, StyleSheet, Theme,
+    # Document
+    html, head, body, title, meta, link, script, style, iframe, base, noscript,
+    # Layout
+    div, section, header, nav, footer, hr, main, article, aside, details, summary, dialog,
+    # Text
+    h1, h2, h3, h4, h5, h6, p, span, strong, em, b, i, u, s, code, pre, blockquote,
+    q, cite, abbr, a, small, sup, sub, time, del_, ins, kbd, samp, var, mark, dfn, br, wbr,
+    # Lists
+    ul, ol, li, dl, dt, dd, datalist,
+    # Forms
+    form, input_, button, textarea, select, option, optgroup, label, fieldset, legend,
+    output, progress, meter,
+    # Tables
+    table, thead, tbody, tfoot, tr, th, td, caption, col, colgroup,
+    # Media
+    img, video, audio, source, picture, figure, figcaption, canvas, track, embed,
+    object_, param, map_, area,
+)
+
 ---
 
 ## HTMLElement Class
@@ -178,35 +265,53 @@ div.remove_all(lambda el: el.get_attribute("class_name") == "hidden")
 
 ### Querying Children
 
-#### filter(condition: Callable) → Iterator[HTMLElement]
+#### filter(condition: Callable, recursive: bool = False, max_depth: int = 1000) → Iterator[HTMLElement]
 Returns iterator of children matching condition.
 
 ```python
-# Get all paragraphs
+# Get all paragraphs (direct children only)
 paragraphs = list(div.filter(lambda el: el.tag == "p"))
 
 # Get elements with specific attribute
 highlighted = list(div.filter(lambda el: el.has_attribute("highlight")))
+
+# Search recursively through all descendants
+all_links = list(div.filter(lambda el: el.tag == "a", recursive=True))
+
+# With custom recursion limit
+deep_search = list(div.filter(condition, recursive=True, max_depth=500))
 ```
 
 **Parameters:**
-- `condition`: Callable[[HTMLElement], bool]
+- `condition`: Callable[[HTMLElement], bool] - Function that returns True for matching elements
+- `recursive`: bool (default: False) - If True, search descendants recursively
+- `max_depth`: int (default: 1000) - Maximum recursion depth when recursive=True
 
 **Returns:** Iterator[HTMLElement]
 
-#### find_by_attribute(key: str, value: str) → Optional[HTMLElement]
-Finds first child with matching attribute.
+**Raises:**
+- `RecursionError` if max_depth is exceeded during recursive search
+
+#### find_by_attribute(key: str, value: str, max_depth: int = 1000) → Optional[HTMLElement]
+Finds first descendant with matching attribute (recursive search).
 
 ```python
 main = div.find_by_attribute("id", "main")
 container = div.find_by_attribute("class_name", "container")
+
+# With custom recursion limit
+element = div.find_by_attribute("data-id", "123", max_depth=500)
 ```
 
 **Parameters:**
 - `key`: str - Attribute name
 - `value`: str - Attribute value to match
+- `max_depth`: int (default: 1000) - Maximum recursion depth
 
 **Returns:** HTMLElement or None
+
+**Raises:**
+- `RecursionError` if max_depth is exceeded during search
 
 #### first() → Optional[HTMLElement]
 Returns first child.
@@ -414,7 +519,7 @@ div.remove_style("margin")
 
 ## Rendering Methods
 
-### render(pretty: bool = False, _indent: int = 0) → str
+### render(pretty: bool = False, _indent: int = 0, max_depth: int = 1000) → str
 Renders element to HTML string.
 
 ```python
@@ -428,13 +533,20 @@ html = div.render(pretty=True)
 #   <h1>Title</h1>
 #   <p>Content</p>
 # </div>
+
+# With custom recursion limit
+html = div.render(max_depth=500)
 ```
 
 **Parameters:**
 - `pretty`: bool (default: False) - Enable pretty printing with indentation
 - `_indent`: int (default: 0) - Internal parameter for indentation level
+- `max_depth`: int (default: 1000) - Maximum recursion depth to prevent stack overflow
 
 **Returns:** str - HTML string
+
+**Raises:**
+- `RecursionError` if max_depth is exceeded (likely circular reference)
 
 **Note:** `_indent` is for internal use. Don't set it manually.
 
@@ -1828,8 +1940,8 @@ def pop(self, index: int = 0) -> 'HTMLElement': ...
 def remove_all(self, condition: Callable[['HTMLElement'], bool]) -> 'HTMLElement': ...
 
 # Querying
-def filter(self, condition: Callable[['HTMLElement'], bool]) -> Iterator['HTMLElement']: ...
-def find_by_attribute(self, key: str, value: str) -> Optional['HTMLElement']: ...
+def filter(self, condition: Callable[['HTMLElement'], bool], recursive: bool = False, max_depth: int = 1000) -> Iterator['HTMLElement']: ...
+def find_by_attribute(self, key: str, value: str, max_depth: int = 1000) -> Optional['HTMLElement']: ...
 def first(self) -> Optional['HTMLElement']: ...
 def last(self) -> Optional['HTMLElement']: ...
 def count_children(self) -> int: ...
@@ -1849,7 +1961,7 @@ def get_style(self, key: str) -> Optional[str]: ...
 def remove_style(self, key: str) -> 'HTMLElement': ...
 
 # Rendering
-def render(self, pretty: bool = False, _indent: int = 0) -> str: ...
+def render(self, pretty: bool = False, _indent: int = 0, max_depth: int = 1000) -> str: ...
 def __str__(self) -> str: ...
 
 # Serialization
@@ -1983,6 +2095,87 @@ div = Div(data_value='<script>alert("xss")</script>')
 ### No Raw HTML Injection
 
 NitroUI does not support raw HTML injection. All content is escaped. This prevents XSS attacks.
+
+### CSS Value Validation
+
+Inline styles are validated to prevent CSS-based attacks:
+
+```python
+# These will raise ValueError:
+div.add_style("background", "url(javascript:alert('xss'))")  # Rejected
+div.add_style("behavior", "expression(alert('xss'))")        # Rejected
+
+# Safe values work normally:
+div.add_style("background", "url('image.png')")              # OK
+div.add_style("color", "red")                                # OK
+```
+
+### StyleSheet CSS Class Validation
+
+CSS class names registered with StyleSheet are validated:
+
+```python
+stylesheet = StyleSheet()
+
+# Valid class names
+stylesheet.register("btn-primary", style)      # OK
+stylesheet.register("card__header", style)     # OK (BEM)
+stylesheet.register("card--featured", style)   # OK (BEM)
+
+# Invalid class names raise ValueError
+stylesheet.register("evil} body{display:none", style)  # Rejected - CSS injection
+stylesheet.register("123invalid", style)               # Rejected - starts with number
+```
+
+### Recursion Depth Protection
+
+Tree traversal methods have recursion limits to prevent stack overflow from deeply nested or circular structures:
+
+```python
+# Methods with max_depth parameter (default: 1000)
+element.render(max_depth=500)
+element.filter(condition, recursive=True, max_depth=500)
+element.find_by_attribute("id", "x", max_depth=500)
+
+# Raises RecursionError if depth exceeded
+```
+
+### Child Type Validation
+
+Invalid child types raise `ValueError` consistently:
+
+```python
+# These raise ValueError:
+Div(123)           # Integer not allowed
+Div({"key": "val"}) # Dict not allowed
+div.append(123)    # Integer not allowed
+div.prepend(None, 123)  # Integer not allowed (None is silently ignored)
+
+# Valid children:
+Div("text")                    # String OK
+Div(Paragraph("content"))      # HTMLElement OK
+Div(["text", Span("inline")])  # List of valid children OK
+```
+
+### HTML Parser Warnings
+
+The HTML parser warns about potentially problematic HTML:
+
+```python
+import warnings
+from nitro_ui import from_html
+from nitro_ui.core.parser import HTMLParseWarning
+
+# Warns about mismatched tags
+with warnings.catch_warnings(record=True) as w:
+    warnings.simplefilter("always")
+    element = from_html("<div><span></div></span>")
+    # Warning: Mismatched HTML tags: expected </span> but found </div>
+
+# Warns about attribute collisions
+element = from_html('<div data-foo="1" data_foo="2"></div>')
+# Warning: Attribute collision - both normalize to data_foo
+```
 
 ---
 

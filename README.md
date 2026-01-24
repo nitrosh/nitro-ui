@@ -44,6 +44,27 @@ pip install nitro-ui
 
 ## Quick Examples
 
+### HTML-like Syntax
+
+Prefer lowercase tag names that look like real HTML? Use `nitro_ui.html`:
+
+```python
+from nitro_ui.html import div, h1, p, ul, li, a, img
+
+page = div(
+    h1("Welcome"),
+    p("This looks just like HTML!"),
+    ul(
+        li(a("Home", href="/")),
+        li(a("About", href="/about")),
+    ),
+    img(src="hero.jpg", alt="Hero image"),
+    class_name="container"
+)
+```
+
+All standard HTML tags are available as lowercase functions. Python keywords use a trailing underscore: `del_`, `input_`, `object_`, `map_`.
+
 ### Dynamic Content
 
 ```python
@@ -249,6 +270,8 @@ color = div.get_style("color")  # "blue"
 
 ## Available Elements
 
+**PascalCase imports** (`from nitro_ui import *`):
+
 | Module                 | Elements                                                                |
 |------------------------|-------------------------------------------------------------------------|
 | `nitro_ui.tags.html`   | HTML, Head, Body, Title, Meta, Script, Style, HtmlLink, IFrame          |
@@ -258,6 +281,20 @@ color = div.get_style("color")  # "blue"
 | `nitro_ui.tags.lists`  | UnorderedList, OrderedList, ListItem, DescriptionList                   |
 | `nitro_ui.tags.media`  | Image, Video, Audio, Figure, Canvas, Picture, Source                    |
 | `nitro_ui.tags.table`  | Table, TableRow, TableHeader, TableBody, TableHeaderCell, TableDataCell |
+
+**Lowercase HTML-like imports** (`from nitro_ui.html import *`):
+
+| Category | Aliases                                                              |
+|----------|----------------------------------------------------------------------|
+| Document | `html`, `head`, `body`, `title`, `meta`, `script`, `style`, `link`   |
+| Layout   | `div`, `section`, `article`, `header`, `nav`, `footer`, `main`, `hr` |
+| Text     | `h1`-`h6`, `p`, `span`, `strong`, `em`, `a`, `code`, `pre`, `b`, `i` |
+| Form     | `form`, `input_`, `button`, `select`, `option`, `textarea`, `label`  |
+| Lists    | `ul`, `ol`, `li`, `dl`, `dt`, `dd`                                   |
+| Media    | `img`, `video`, `audio`, `figure`, `canvas`, `picture`, `source`     |
+| Table    | `table`, `tr`, `td`, `th`, `thead`, `tbody`, `tfoot`                 |
+
+*Note: `input_`, `del_`, `object_`, `map_` use trailing underscore to avoid Python keyword/builtin conflicts.*
 
 ## Element API
 
