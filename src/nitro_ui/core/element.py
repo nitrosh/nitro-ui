@@ -52,13 +52,31 @@ class HTMLElement:
         self_closing: bool = False,
         **attributes: str,
     ):
-        PRESERVE_UNDERSCORE = {"class_name"}
+        # Attributes that should keep underscores (not convert to hyphens)
+        PRESERVE_UNDERSCORE = {"class_name", "for_element"}
+
+        # Map trailing underscore convention to NitroUI convention
+        # e.g., class_ -> class_name, for_ -> for_element
+        KEYWORD_MAPPINGS = {
+            "class_": "class_name",
+            "for_": "for_element",
+        }
 
         if not tag:
             raise ValueError("A valid HTML tag name is required")
 
+        def normalize_attr_key(k: str) -> str:
+            # First, handle keyword mappings (class_ -> class_name, for_ -> for_element)
+            if k in KEYWORD_MAPPINGS:
+                return KEYWORD_MAPPINGS[k]
+            # Preserve certain keys with underscores
+            if k in PRESERVE_UNDERSCORE:
+                return k
+            # Convert remaining underscores to hyphens (data_value -> data-value)
+            return k.replace("_", "-")
+
         fixed_attributes = {
-            (k if k in PRESERVE_UNDERSCORE else k.replace("_", "-")): v
+            normalize_attr_key(k): v
             for k, v in attributes.items()
         }
 
@@ -533,8 +551,17 @@ class HTMLElement:
 
     def _render_attributes(self) -> str:
         """Returns a string of HTML attributes for the tag."""
+        # Map internal attribute names to HTML attribute names
+        ATTR_RENDER_MAP = {
+            "class_name": "class",
+            "for_element": "for",
+        }
+
+        def render_key(k: str) -> str:
+            return ATTR_RENDER_MAP.get(k, k)
+
         attr_str = " ".join(
-            f'{("class" if k == "class_name" else k)}="{html.escape(str(v), quote=True)}"'
+            f'{render_key(k)}="{html.escape(str(v), quote=True)}"'
             for k, v in self._attributes.items()
         )
         return f" {attr_str}" if attr_str else ""
