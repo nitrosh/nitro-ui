@@ -1,11 +1,76 @@
 """StyleSheet class for managing CSS classes in NitroUI."""
 
+import re
+import warnings
 from typing import Dict, Optional, List, TYPE_CHECKING
 
 from .style import CSSStyle
 
 if TYPE_CHECKING:
     from .theme import Theme
+
+
+# Valid CSS class name pattern: must start with letter, underscore, or hyphen
+# followed by letters, digits, underscores, or hyphens
+_VALID_CLASS_NAME_PATTERN = re.compile(r"^-?[_a-zA-Z][_a-zA-Z0-9-]*$")
+
+# Characters that could be used for CSS injection attacks
+_DANGEROUS_CSS_CHARS = re.compile(r"[{}<>]|/\*|\*/|\\[0-9a-fA-F]")
+
+
+def _validate_class_name(name: str) -> bool:
+    """Validate that a class name is safe for CSS output.
+
+    Args:
+        name: The class name to validate
+
+    Returns:
+        True if valid, False otherwise
+    """
+    if not name or not isinstance(name, str):
+        return False
+    # Check for BEM naming (allows __ and --)
+    # Split by BEM separators and validate each part
+    parts = re.split(r"__|--", name)
+    return all(_VALID_CLASS_NAME_PATTERN.match(part) for part in parts if part)
+
+
+def _sanitize_css_value(value: str) -> str:
+    """Sanitize a CSS value to prevent injection attacks.
+
+    Args:
+        value: The CSS value to sanitize
+
+    Returns:
+        Sanitized CSS value
+
+    Raises:
+        ValueError: If the value contains dangerous characters that cannot be sanitized
+    """
+    if not isinstance(value, str):
+        value = str(value)
+
+    # Check for dangerous patterns
+    if _DANGEROUS_CSS_CHARS.search(value):
+        raise ValueError(
+            f"CSS value contains potentially dangerous characters: {value!r}"
+        )
+
+    # Check for url() with javascript: or data: protocols (potential XSS)
+    lower_value = value.lower()
+    if "url(" in lower_value:
+        if "javascript:" in lower_value or "data:" in lower_value:
+            raise ValueError(
+                f"CSS value contains potentially dangerous URL protocol: {value!r}"
+            )
+
+    # Check for expression() (IE CSS expressions - XSS vector)
+    if "expression(" in lower_value:
+        raise ValueError(
+            f"CSS value contains potentially dangerous expression(): {value!r}"
+        )
+
+    return value
 
 
 class StyleSheet:
@@ -64,6 +129,9 @@ class StyleSheet:
 
         Returns:
             The class name (for use in class_name attribute)
+
+        Raises:
+            ValueError: If the class name is invalid (contains dangerous characters)
         """
         if style is None:
             style = CSSStyle()
@@ -72,6 +140,14 @@ class StyleSheet:
         if name is None:
             name = f"s-{self._counter}"
             self._counter += 1
+        else:
+            # Validate user-provided class names
+            if not _validate_class_name(name):
+                raise ValueError(
+                    f"Invalid CSS class name: {name!r}. Class names must start with "
+                    "a letter, underscore, or hyphen, followed by letters, digits, "
+                    "underscores, or hyphens. BEM notation (__ and --) is allowed."
+                )
 
         # Store the style
         self._classes[name] = style
@@ -175,6 +251,9 @@ class StyleSheet:
 
         Returns:
             List of CSS strings
+
+        Raises:
+            ValueError: If any CSS value contains dangerous characters
         """
         css_lines = []
         indent_str = " " * indent
@@ -183,7 +262,8 @@ class StyleSheet:
         if style._styles:
             css_lines.append(f".{class_name} {{")
             for prop, value in style._styles.items():
-                css_lines.append(f"{indent_str}{prop}: {value};")
+                sanitized_value = _sanitize_css_value(value)
+                css_lines.append(f"{indent_str}{prop}: {sanitized_value};")
             css_lines.append("}")
 
         # Pseudo-selectors
@@ -191,7 +271,8 @@ class StyleSheet:
             if pseudo_style._styles:
                 css_lines.append(f".{class_name}:{pseudo} {{")
                 for prop, value in pseudo_style._styles.items():
-                    css_lines.append(f"{indent_str}{prop}: {value};")
+                    sanitized_value = _sanitize_css_value(value)
+                    css_lines.append(f"{indent_str}{prop}: {sanitized_value};")
                 css_lines.append("}")
 
         # Responsive breakpoints
@@ -201,7 +282,10 @@ class StyleSheet:
                 css_lines.append(f"@media (min-width: {min_width}) {{")
                 css_lines.append(f"{indent_str}.{class_name} {{")
                 for prop, value in bp_style._styles.items():
-                    css_lines.append(f"{indent_str}{indent_str}{prop}: {value};")
+                    sanitized_value = _sanitize_css_value(value)
+                    css_lines.append(
+                        f"{indent_str}{indent_str}{prop}: {sanitized_value};"
+                    )
                 css_lines.append(f"{indent_str}}}")
                 css_lines.append("}")
 
