@@ -1,3 +1,8 @@
+---
+name: nitro-ui
+description: Generate NitroUI code - a Python library for programmatic HTML generation using classes instead of templates
+---
+
 # NitroUI Skill Guide
 
 **Quick reference for Claude to generate NitroUI code.**

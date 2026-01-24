@@ -42,6 +42,14 @@ print(page.render(pretty=True))
 pip install nitro-ui
 ```
 
+### Claude Code Skill
+
+Add NitroUI as a skill in [Claude Code](https://claude.ai/code) for AI-assisted HTML generation:
+
+```bash
+npx skills add nitrosh/nitro-ui
+```
+
 ## Quick Examples
 
 ### HTML-like Syntax
