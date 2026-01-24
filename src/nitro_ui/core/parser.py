@@ -1,9 +1,16 @@
 """HTML Parser for NitroUI - Convert raw HTML to NitroUI elements."""
 
+import warnings
 from html.parser import HTMLParser
 from typing import List, Optional, Union
 
 from nitro_ui.core.element import HTMLElement
+
+
+class HTMLParseWarning(UserWarning):
+    """Warning raised when parsing potentially problematic HTML."""
+
+    pass
 
 
 class NitroUIHTMLParser(HTMLParser):
@@ -38,11 +45,28 @@ class NitroUIHTMLParser(HTMLParser):
         self._flush_text_buffer()
 
         attributes = {}
+        seen_normalized = {}  # Track normalized attribute names to detect collisions
+
         for key, value in attrs:
             if key == "class":
-                attributes["class_name"] = value
+                normalized_key = "class_name"
             else:
-                attributes[key.replace("-", "_")] = value if value is not None else ""
+                normalized_key = key.replace("-", "_")
+
+            # Check for attribute collision
+            if normalized_key in seen_normalized:
+                original_key = seen_normalized[normalized_key]
+                warnings.warn(
+                    f"Attribute collision in <{tag}>: '{key}' normalizes to "
+                    f"'{normalized_key}' which collides with '{original_key}'. "
+                    f"The later value will overwrite the earlier one.",
+                    HTMLParseWarning,
+                    stacklevel=4,
+                )
+            else:
+                seen_normalized[normalized_key] = key
+
+            attributes[normalized_key] = value if value is not None else ""
 
         is_self_closing = tag in self.VOID_ELEMENTS
 
@@ -61,9 +85,39 @@ class NitroUIHTMLParser(HTMLParser):
         """Handle closing tags."""
         self._flush_text_buffer()
 
-        if self.stack and self.stack[-1].tag == tag:
-            self.stack.pop()
-            self.current = self.stack[-1] if self.stack else None
+        # Ignore closing tags for void elements - these can appear when parsing
+        # XHTML-style self-closing syntax like <br /> which some parsers interpret
+        # as having a closing tag
+        if tag in self.VOID_ELEMENTS:
+            return
+
+        if self.stack:
+            if self.stack[-1].tag == tag:
+                self.stack.pop()
+                self.current = self.stack[-1] if self.stack else None
+            else:
+                # Mismatched closing tag
+                expected = self.stack[-1].tag
+                warnings.warn(
+                    f"Mismatched HTML tags: expected </{expected}> but found </{tag}>. "
+                    f"This may result in an incorrect element tree.",
+                    HTMLParseWarning,
+                    stacklevel=4,
+                )
+                # Try to find the matching opening tag in the stack
+                for i in range(len(self.stack) - 1, -1, -1):
+                    if self.stack[i].tag == tag:
+                        # Found a match - close all tags up to and including this one
+                        self.stack = self.stack[:i]
+                        self.current = self.stack[-1] if self.stack else None
+                        break
+        else:
+            # Closing tag with no opening tag (ignore void elements)
+            warnings.warn(
+                f"Unexpected closing tag </{tag}> with no matching opening tag.",
+                HTMLParseWarning,
+                stacklevel=4,
+            )
 
     def handle_data(self, data: str):
         """Handle text content between tags."""

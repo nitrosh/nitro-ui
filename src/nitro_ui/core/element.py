@@ -2,10 +2,37 @@ import copy
 import html
 import json
 import os
+import re
 import uuid
+import warnings
 from typing import Callable, Any, Iterator, Union, List, TypeVar
 
 T = TypeVar("T", bound="HTMLElement")
+
+# Default maximum recursion depth for tree traversal operations
+DEFAULT_MAX_DEPTH = 1000
+
+# Pattern for detecting potentially dangerous CSS values
+_DANGEROUS_CSS_PATTERN = re.compile(
+    r'javascript:|expression\s*\(|url\s*\(\s*["\']?\s*data:|'
+    r'url\s*\(\s*["\']?\s*javascript:|'
+    r"[{}<>]|/\*|\*/",
+    re.IGNORECASE,
+)
+
+
+def _validate_css_value(value: str) -> bool:
+    """Validate that a CSS value doesn't contain injection attacks.
+
+    Args:
+        value: The CSS value to validate
+
+    Returns:
+        True if safe, False if potentially dangerous
+    """
+    if not isinstance(value, str):
+        return True  # Non-strings will be converted safely
+    return not _DANGEROUS_CSS_PATTERN.search(value)
 
 
 class HTMLElement:
@@ -52,6 +79,12 @@ class HTMLElement:
                 self._children.append(child)
             elif isinstance(child, str):
                 text_parts.append(child)
+            elif child is not None:
+                # Raise error for invalid types (consistent with prepend/append behavior)
+                raise ValueError(
+                    f"Invalid child type: {type(child).__name__}. "
+                    "Children must be HTMLElement instances or strings."
+                )
         if text_parts:
             self._text = "".join(text_parts)
 
@@ -61,7 +94,15 @@ class HTMLElement:
         return self.render()
 
     def __del__(self) -> None:
-        self.on_unload()
+        # Note: __del__ may not be called for objects with circular references.
+        # Do not rely on on_unload() for critical cleanup operations.
+        # Consider using context managers or explicit cleanup methods instead.
+        try:
+            self.on_unload()
+        except Exception:
+            # Suppress exceptions during garbage collection to avoid
+            # confusing error messages during interpreter shutdown
+            pass
 
     def __enter__(self) -> "HTMLElement":
         """Context manager entry - returns self for use in with statements."""
@@ -85,6 +126,9 @@ class HTMLElement:
 
         Returns:
             self for method chaining
+
+        Raises:
+            ValueError: If any child is not an HTMLElement or string
         """
         new_children: List[HTMLElement] = []
         text_parts: List[str] = []
@@ -93,8 +137,11 @@ class HTMLElement:
                 new_children.append(child)
             elif isinstance(child, str):
                 text_parts.append(child)
-            else:
-                raise ValueError(f"Invalid child type: {child}")
+            elif child is not None:
+                raise ValueError(
+                    f"Invalid child type: {type(child).__name__}. "
+                    "Children must be HTMLElement instances or strings."
+                )
         if text_parts:
             self._text = "".join(text_parts) + self._text
         self._children = new_children + self._children
@@ -105,6 +152,9 @@ class HTMLElement:
 
         Returns:
             self for method chaining
+
+        Raises:
+            ValueError: If any child is not an HTMLElement or string
         """
         text_parts: List[str] = []
         for child in self._flatten(children):
@@ -112,19 +162,48 @@ class HTMLElement:
                 self._children.append(child)
             elif isinstance(child, str):
                 text_parts.append(child)
+            elif child is not None:
+                raise ValueError(
+                    f"Invalid child type: {type(child).__name__}. "
+                    "Children must be HTMLElement instances or strings."
+                )
         if text_parts:
             self._text += "".join(text_parts)
         return self
 
     def filter(
-        self, condition: Callable[[Any], bool], recursive: bool = False
+        self,
+        condition: Callable[[Any], bool],
+        recursive: bool = False,
+        max_depth: int = DEFAULT_MAX_DEPTH,
+        _current_depth: int = 0,
     ) -> Iterator["HTMLElement"]:
-        """Yields children (and optionally descendants) that meet the condition."""
+        """Yields children (and optionally descendants) that meet the condition.
+
+        Args:
+            condition: A callable that takes a child and returns True if it matches
+            recursive: If True, search descendants recursively
+            max_depth: Maximum recursion depth (default 1000) to prevent stack overflow
+            _current_depth: Internal parameter for tracking current depth
+
+        Raises:
+            RecursionError: If max_depth is exceeded
+        """
+        if _current_depth > max_depth:
+            raise RecursionError(
+                f"Maximum recursion depth ({max_depth}) exceeded in filter(). "
+                "Consider increasing max_depth or checking for circular references."
+            )
         for child in self._children:
             if condition(child):
                 yield child
             if recursive:
-                yield from child.filter(condition, recursive=True)
+                yield from child.filter(
+                    condition,
+                    recursive=True,
+                    max_depth=max_depth,
+                    _current_depth=_current_depth + 1,
+                )
 
     def remove_all(self, condition: Callable[[Any], bool]) -> "HTMLElement":
         """Removes all children that meet the condition.
@@ -232,7 +311,15 @@ class HTMLElement:
 
         Returns:
             self for method chaining
+
+        Raises:
+            ValueError: If the CSS value contains potentially dangerous content
         """
+        if not _validate_css_value(str(value)):
+            raise ValueError(
+                f"CSS value for '{key}' contains potentially dangerous content: {value!r}. "
+                "Values cannot contain javascript:, expression(), or other injection patterns."
+            )
         styles_dict = self._get_styles_dict()
         styles_dict[key] = value
         self._flush_styles_cache()
@@ -248,7 +335,16 @@ class HTMLElement:
 
         Returns:
             self for method chaining
+
+        Raises:
+            ValueError: If any CSS value contains potentially dangerous content
         """
+        for key, value in styles.items():
+            if not _validate_css_value(str(value)):
+                raise ValueError(
+                    f"CSS value for '{key}' contains potentially dangerous content: {value!r}. "
+                    "Values cannot contain javascript:, expression(), or other injection patterns."
+                )
         styles_dict = self._get_styles_dict()
         styles_dict.update(styles)
         self._flush_styles_cache()
@@ -331,15 +427,37 @@ class HTMLElement:
         self._children[old_index] = new_child
 
     def find_by_attribute(
-        self, attr_name: str, attr_value: Any
+        self,
+        attr_name: str,
+        attr_value: Any,
+        max_depth: int = DEFAULT_MAX_DEPTH,
     ) -> Union["HTMLElement", None]:
-        """Finds a child by an attribute."""
+        """Finds a child by an attribute.
 
-        def _find(element: "HTMLElement") -> Union["HTMLElement", None]:
+        Args:
+            attr_name: The attribute name to search for
+            attr_value: The attribute value to match
+            max_depth: Maximum recursion depth (default 1000) to prevent stack overflow
+
+        Returns:
+            The matching element or None if not found
+
+        Raises:
+            RecursionError: If max_depth is exceeded
+        """
+
+        def _find(
+            element: "HTMLElement", current_depth: int = 0
+        ) -> Union["HTMLElement", None]:
+            if current_depth > max_depth:
+                raise RecursionError(
+                    f"Maximum recursion depth ({max_depth}) exceeded in find_by_attribute(). "
+                    "Consider increasing max_depth or checking for circular references."
+                )
             if element.get_attribute(attr_name) == attr_value:
                 return element
             for child in element._children:
-                result = _find(child)
+                result = _find(child, current_depth + 1)
                 if result:
                     return result
             return None
@@ -421,17 +539,33 @@ class HTMLElement:
         )
         return f" {attr_str}" if attr_str else ""
 
-    def render(self, pretty: bool = False, _indent: int = 0) -> str:
+    def render(
+        self,
+        pretty: bool = False,
+        _indent: int = 0,
+        max_depth: int = DEFAULT_MAX_DEPTH,
+    ) -> str:
         """
         Renders the HTML element and its children to a string.
 
         Args:
             pretty: If True, renders with indentation and newlines for readability
             _indent: Internal parameter for tracking indentation level
+            max_depth: Maximum recursion depth (default 1000) to prevent stack overflow
 
         Returns:
             String representation of the HTML element
+
+        Raises:
+            RecursionError: If max_depth is exceeded (likely circular reference)
         """
+        if _indent > max_depth:
+            raise RecursionError(
+                f"Maximum recursion depth ({max_depth}) exceeded in render(). "
+                "This usually indicates a circular reference in the element tree. "
+                "Consider increasing max_depth if you have deeply nested HTML."
+            )
+
         self.on_before_render()
 
         attributes = self._render_attributes()
@@ -446,7 +580,7 @@ class HTMLElement:
         else:
             if pretty and self._children:
                 children_html = "".join(
-                    child.render(pretty=True, _indent=_indent + 1)
+                    child.render(pretty=True, _indent=_indent + 1, max_depth=max_depth)
                     for child in self._children
                 )
                 escaped_text = html.escape(self._text)
@@ -463,7 +597,9 @@ class HTMLElement:
                     result = f"{tag_start}></{self._tag}>\n"
             else:
                 children_html = "".join(
-                    child.render(pretty=pretty, _indent=_indent + 1)
+                    child.render(
+                        pretty=pretty, _indent=_indent + 1, max_depth=max_depth
+                    )
                     for child in self._children
                 )
                 escaped_text = html.escape(self._text)
