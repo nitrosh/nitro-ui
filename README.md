@@ -12,13 +12,13 @@ page = HTML(
     Body(
         Nav(
             Link("Home", href="/"),
-            Link("Settings", href="/settings", class_name="active")
+            Link("Settings", href="/settings", cls="active")
         ),
         Main(
             H1("Welcome back!"),
             Div(
                 Paragraph("You have ", Strong("3"), " new notifications."),
-                Button("View All", type="button", class_name="btn-primary")
+                Button("View All", type="button", cls="btn-primary")
             )
         )
     )
@@ -67,7 +67,7 @@ page = div(
         li(a("About", href="/about")),
     ),
     img(src="hero.jpg", alt="Hero image"),
-    class_name="container"
+    cls="container"
 )
 ```
 
@@ -84,7 +84,7 @@ def render_user_card(user):
         H3(user["name"]),
         Paragraph(user["bio"]),
         Link("View Profile", href=f"/users/{user['id']}"),
-        class_name="user-card"
+        cls="user-card"
     )
 
 users = [
@@ -92,7 +92,7 @@ users = [
     {"id": 2, "name": "Bob", "bio": "Frontend developer", "avatar": "/avatars/bob.jpg"},
 ]
 
-grid = Div(*[render_user_card(u) for u in users], class_name="user-grid")
+grid = Div(*[render_user_card(u) for u in users], cls="user-grid")
 ```
 
 ### Method Chaining
@@ -116,7 +116,7 @@ class Card(HTMLElement):
     def __init__(self, title, *children, **kwargs):
         super().__init__(**{**kwargs, "tag": "div"})
         self.add_attribute("class", "card")
-        self.append(H3(title, class_name="card-title"))
+        self.append(H3(title, cls="card-title"))
         for child in children:
             self.append(child)
 
@@ -164,7 +164,7 @@ page = HTML(
         Style(stylesheet.render())
     ),
     Body(
-        Button("Click Me", class_name=btn)
+        Button("Click Me", cls=btn)
     )
 )
 ```
@@ -265,6 +265,34 @@ def table_rows(items):
         for item in items
     ])
 ```
+
+### Raw HTML Partials
+
+Embed raw HTML for trusted content like analytics tags:
+
+```python
+from nitro_ui import Head, Meta, Title, Partial
+
+Head(
+    Meta(charset="utf-8"),
+    Partial("""
+        <!-- Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=GA_ID"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'GA_ID');
+        </script>
+    """),
+    Title("My Page")
+)
+
+# Or load from a file (lazy-loaded at render time)
+Partial(file="partials/analytics.html")
+```
+
+**Warning:** `Partial` bypasses HTML escaping. Only use with trusted content.
 
 ### CSS Style Helpers
 

@@ -17,7 +17,7 @@ from nitro_ui import Div, H1, Paragraph
 page = Div(
     H1("Welcome"),
     Paragraph("Built with NitroUI"),
-    class_name="container"
+    cls="container"
 )
 print(page.render())
 # <div class="container"><h1>Welcome</h1><p>Built with NitroUI</p></div>
@@ -43,7 +43,7 @@ page = div(
         li(a("Home", href="/")),
         li(a("About", href="/about")),
     ),
-    class_name="container"
+    cls="container"
 )
 ```
 
@@ -69,7 +69,7 @@ Element(*children, **attributes)
 - `**attributes`: HTML attributes as keyword arguments
 
 **Special attribute mappings:**
-- `class_name` → `class` (Python keyword workaround)
+- `cls` or `class_name` → `class` (use `cls` - it's shorter and more Pythonic)
 - `for_element` → `for` (Python keyword workaround)
 - `data_*` → `data-*` (underscores become hyphens)
 
@@ -78,7 +78,7 @@ div = Div(
     H1("Title"),
     "Some text",
     id="main",
-    class_name="container",
+    cls="container",
     data_value="123"
 )
 # <div id="main" class="container" data-value="123"><h1>Title</h1>Some text</div>
@@ -255,6 +255,32 @@ print(frag.render())
 
 ---
 
+## Partial (Raw HTML)
+
+Embed raw HTML for trusted content like analytics tags. Bypasses escaping.
+
+```python
+from nitro_ui import Head, Meta, Title, Partial
+
+# Inline raw HTML
+Head(
+    Meta(charset="utf-8"),
+    Partial("""
+        <!-- Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=GA_ID"></script>
+        <script>gtag('config', 'GA_ID');</script>
+    """),
+    Title("My Page")
+)
+
+# Or load from file (lazy-loaded at render time)
+Partial(file="partials/analytics.html")
+```
+
+**Warning:** Only use with trusted content - bypasses XSS protections.
+
+---
+
 ## Styling System
 
 ### Inline Styles
@@ -281,7 +307,7 @@ btn = stylesheet.register("btn", CSSStyle(
 ))
 
 # Use in elements
-button = Button("Click", class_name=btn)
+button = Button("Click", cls=btn)
 
 # Generate CSS
 css = stylesheet.render()
@@ -328,7 +354,7 @@ page = HTML(
         Div(
             H1("Welcome"),
             Paragraph("Hello, world!"),
-            class_name="container"
+            cls="container"
         )
     )
 )
@@ -345,7 +371,7 @@ navbar = nav(
         li(a("About", href="/about")),
         li(a("Contact", href="/contact")),
     ),
-    class_name="navbar"
+    cls="navbar"
 )
 ```
 
@@ -390,13 +416,13 @@ def card(title, content, link_url=None):
     children = [h3(title), p(content)]
     if link_url:
         children.append(a("Learn more", href=link_url))
-    return div(*children, class_name="card")
+    return div(*children, cls="card")
 
 # Usage
 cards = div(
     card("Feature 1", "Description here", "/feature-1"),
     card("Feature 2", "Another description", "/feature-2"),
-    class_name="card-grid"
+    cls="card-grid"
 )
 ```
 
@@ -423,10 +449,10 @@ from nitro_ui import HTMLElement, H2, Paragraph
 
 class Card(HTMLElement):
     def __init__(self, title, content, **kwargs):
-        super().__init__(tag="div", class_name="card", **kwargs)
+        super().__init__(tag="div", cls="card", **kwargs)
         self.append(
-            H2(title, class_name="card-title"),
-            Paragraph(content, class_name="card-body")
+            H2(title, cls="card-title"),
+            Paragraph(content, cls="card-body")
         )
 
 # Usage
@@ -497,7 +523,7 @@ def home(request):
 When generating NitroUI code:
 
 - [ ] Choose import style: PascalCase (`from nitro_ui import`) or lowercase (`from nitro_ui.html import`)
-- [ ] Use `class_name` not `class` (Python keyword)
+- [ ] Use `cls` for CSS classes (or `class_name` - both work, `cls` is shorter)
 - [ ] Use `for_element` not `for` (Python keyword)
 - [ ] Use `input_`, `del_`, `object_`, `map_` for Python conflicts
 - [ ] Children go as positional args, attributes as keyword args
@@ -505,3 +531,4 @@ When generating NitroUI code:
 - [ ] Use `pretty=True` for readable output during development
 - [ ] All manipulation methods return `self` for chaining (except `replace_child`, `generate_id`)
 - [ ] Use `Fragment` when you need multiple elements without a wrapper
+- [ ] Use `Partial` for raw HTML (analytics, embeds) - bypasses escaping
