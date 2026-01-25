@@ -57,8 +57,10 @@ class HTMLElement:
 
         # Map trailing underscore convention to NitroUI convention
         # e.g., class_ -> class_name, for_ -> for_element
+        # Also support cls as a short alias for class_name
         KEYWORD_MAPPINGS = {
             "class_": "class_name",
+            "cls": "class_name",
             "for_": "for_element",
         }
 

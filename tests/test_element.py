@@ -94,6 +94,18 @@ class TestHTMLElement(unittest.TestCase):
         self.assertTrue(element.has_attribute("id"))
         self.assertFalse(element.has_attribute("style"))
 
+    def test_cls_alias_for_class_name(self):
+        """Test that cls works as an alias for class_name."""
+        # cls should map to class_name internally
+        element = HTMLElement(tag="div", cls="container")
+        self.assertEqual(element.get_attribute("class_name"), "container")
+        self.assertEqual(element.render(), '<div class="container"></div>')
+
+        # class_ should also still work
+        element2 = HTMLElement(tag="div", class_="btn primary")
+        self.assertEqual(element2.get_attribute("class_name"), "btn primary")
+        self.assertEqual(element2.render(), '<div class="btn primary"></div>')
+
     def test_generate_id(self):
         """Test the generate_id() method."""
         element = HTMLElement(tag="div")
