@@ -1,7 +1,6 @@
 """StyleSheet class for managing CSS classes in NitroUI."""
 
 import re
-import warnings
 from typing import Dict, Optional, List, TYPE_CHECKING
 
 from .style import CSSStyle

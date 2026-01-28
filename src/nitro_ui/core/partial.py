@@ -1,5 +1,3 @@
-from typing import Union
-
 from nitro_ui.core.element import HTMLElement, DEFAULT_MAX_DEPTH
 
 

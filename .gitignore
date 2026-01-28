@@ -32,3 +32,5 @@ env/
 .idea/
 .vscode/
 CLAUDE.md
+.coverage
+htmlcov/

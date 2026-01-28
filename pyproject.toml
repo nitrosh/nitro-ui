@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-ui"
-version = "1.0.4"
+version = "1.0.5"
 description = "Build HTML with Python, not strings. Zero-dependency library with type-safe elements, method chaining, and JSON serialization."
 readme = "README.md"
 requires-python = ">=3.8"

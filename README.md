@@ -358,7 +358,7 @@ All manipulation methods return `self` for chaining.
 
 ## For AI/LLM Integration
 
-NitroUI is designed to work seamlessly with AI code generation. See [LLM_GUIDE.md](LLM_GUIDE.md) for a complete technical reference including exact method signatures, type hints, and common patterns.
+NitroUI is designed to work seamlessly with AI code generation. See [SKILL.md](SKILL.md) for a complete technical reference including method signatures, all tags, and common patterns.
 
 ## Development
 
@@ -384,4 +384,4 @@ BSD 3-Clause License. See [LICENSE](LICENSE) for details.
 - [Author](https://github.com/sn)
 - [PyPI](https://pypi.org/project/nitro-ui/)
 - [GitHub](https://github.com/sn/nitro-ui)
-- [LLM Guide](LLM_GUIDE.md)
+- [Skill Guide](SKILL.md)

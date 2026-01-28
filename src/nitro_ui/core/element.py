@@ -4,10 +4,7 @@ import json
 import os
 import re
 import uuid
-import warnings
-from typing import Callable, Any, Iterator, Union, List, TypeVar
-
-T = TypeVar("T", bound="HTMLElement")
+from typing import Callable, Any, Iterator, Union, List, Tuple
 
 # Default maximum recursion depth for tree traversal operations
 DEFAULT_MAX_DEPTH = 1000
@@ -43,6 +40,7 @@ class HTMLElement:
         "_attributes",
         "_self_closing",
         "_styles_cache",
+        "_prefix",
     ]
 
     def __init__(
@@ -77,10 +75,7 @@ class HTMLElement:
             # Convert remaining underscores to hyphens (data_value -> data-value)
             return k.replace("_", "-")
 
-        fixed_attributes = {
-            normalize_attr_key(k): v
-            for k, v in attributes.items()
-        }
+        fixed_attributes = {normalize_attr_key(k): v for k, v in attributes.items()}
 
         self._tag: str = tag
         self._children: List[HTMLElement] = []
@@ -88,6 +83,7 @@ class HTMLElement:
         self._attributes: dict = fixed_attributes
         self._self_closing: bool = self_closing
         self._styles_cache: Union[dict, None] = None
+        self._prefix: Union[str, None] = None
 
         if os.environ.get("NITRO_UI_GENERATE_IDS"):
             self.generate_id()
@@ -269,7 +265,7 @@ class HTMLElement:
             self._styles_cache = None
         return self
 
-    def add_attributes(self, attributes: list[tuple[str, str]]) -> "HTMLElement":
+    def add_attributes(self, attributes: List[Tuple[str, str]]) -> "HTMLElement":
         """Adds multiple attributes to the current tag.
 
         Returns:
@@ -292,6 +288,8 @@ class HTMLElement:
             self for method chaining
         """
         self._attributes.pop(key, None)
+        if key == "style":
+            self._styles_cache = None
         return self
 
     def get_attribute(self, key: str) -> Union[str, None]:
@@ -488,7 +486,7 @@ class HTMLElement:
         """Returns the attributes of the current tag."""
         if keys:
             return {key: self._attributes.get(key) for key in keys}
-        return self._attributes
+        return self._attributes.copy()
 
     def count_children(self) -> int:
         """Returns the number of children in the current tag."""
@@ -634,7 +632,7 @@ class HTMLElement:
                 escaped_text = html.escape(self._text)
                 result = f"{tag_start}>{escaped_text}{children_html}</{self._tag}>"
 
-        if hasattr(self, "_prefix") and self._prefix:
+        if self._prefix:
             result = f"{self._prefix}{result}"
 
         self.on_after_render()
@@ -681,8 +679,8 @@ class HTMLElement:
         element = cls(
             tag=data["tag"],
             self_closing=data.get("self_closing", False),
-            **data.get("attributes", {}),
         )
+        element._attributes = dict(data.get("attributes", {}))
 
         if "text" in data and data["text"]:
             element._text = data["text"]

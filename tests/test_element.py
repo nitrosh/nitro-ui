@@ -709,5 +709,53 @@ class TestHTMLElement(unittest.TestCase):
         self.assertEqual(element.count_children(), 2)
 
 
+class TestBugFixes(unittest.TestCase):
+    """Tests for specific bug fixes in element.py."""
+
+    def test_from_dict_roundtrip_with_data_attributes(self):
+        """from_dict must handle hyphenated attribute keys from to_dict()."""
+        original = HTMLElement(tag="div", data_value="123", data_name="test")
+        data = original.to_dict()
+        # data["attributes"] contains {"data-value": "123", "data-name": "test"}
+        restored = HTMLElement.from_dict(data)
+        self.assertEqual(restored.render(), original.render())
+        self.assertEqual(restored.get_attribute("data-value"), "123")
+        self.assertEqual(restored.get_attribute("data-name"), "test")
+
+    def test_from_dict_roundtrip_with_class_name(self):
+        """from_dict roundtrip preserves class_name correctly."""
+        original = HTMLElement(tag="div", class_name="my-class")
+        data = original.to_dict()
+        restored = HTMLElement.from_dict(data)
+        self.assertEqual(restored.render(), original.render())
+
+    def test_remove_attribute_invalidates_style_cache(self):
+        """Removing the style attribute must clear the styles cache."""
+        el = HTMLElement(tag="div")
+        el.add_style("color", "red")
+        self.assertEqual(el.get_style("color"), "red")
+
+        el.remove_attribute("style")
+        # Cache should be invalidated; add_style should not resurrect old styles
+        el.add_style("font-size", "14px")
+        self.assertIsNone(el.get_style("color"))
+        self.assertEqual(el.get_style("font-size"), "14px")
+
+    def test_get_attributes_returns_copy(self):
+        """get_attributes() should return a copy, not the internal dict."""
+        el = HTMLElement(tag="div", id="test")
+        attrs = el.get_attributes()
+        attrs["id"] = "mutated"
+        # Internal state should be unaffected
+        self.assertEqual(el.get_attribute("id"), "test")
+
+    def test_get_attributes_with_keys_returns_copy(self):
+        """get_attributes(*keys) should also return a safe copy."""
+        el = HTMLElement(tag="div", id="test", role="button")
+        attrs = el.get_attributes("id")
+        attrs["id"] = "mutated"
+        self.assertEqual(el.get_attribute("id"), "test")
+
+
 if __name__ == "__main__":
     unittest.main()
