@@ -2,6 +2,8 @@ from .core.element import HTMLElement
 from .core.fragment import Fragment
 from .core.partial import Partial
 from .core.parser import from_html
+from .core.slot import Slot
+from .core.component import Component
 from .tags.form import (
     Textarea,
     Select,
@@ -128,6 +130,8 @@ __all__ = [
     "Fragment",
     "Partial",
     "from_html",
+    "Slot",
+    "Component",
     # styles
     "CSSStyle",
     "StyleSheet",

@@ -56,6 +56,8 @@ deleted = del_("removed text")                      # <del>
 from nitro_ui.core.element import HTMLElement
 from nitro_ui.core.fragment import Fragment
 from nitro_ui.core.partial import Partial
+from nitro_ui.core.component import Component
+from nitro_ui.core.slot import Slot
 from nitro_ui.core.parser import from_html
 from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 ```
@@ -356,6 +358,134 @@ Partial(file="partials/analytics.html")
 
 ---
 
+## Component (Reusable Components)
+
+Build reusable components with declarative templates and named slots.
+
+```python
+from nitro_ui import Component, Slot, H3, Paragraph, Div, Button
+
+class Card(Component):
+    tag = "div"
+    class_name = "card"
+
+    def template(self, title: str):
+        return [
+            H3(title, cls="card-title"),
+            Slot()  # children go here
+        ]
+
+# Usage
+card = Card("My Title",
+    Paragraph("Content goes here"),
+    id="card-1",
+    class_name="featured"
+)
+# <div class="card featured" id="card-1">
+#     <h3 class="card-title">My Title</h3>
+#     <p>Content goes here</p>
+# </div>
+```
+
+### Class Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `tag` | `str` | `"div"` | Root element tag |
+| `class_name` | `str` | `None` | Default CSS class(es) |
+
+### Template Method
+
+Override `template()` to define the component structure. Parameters become props.
+
+```python
+def template(self, title: str, level: str = "info"):
+    return [
+        Span(f"[{level.upper()}]"),
+        Span(title),
+        Slot()
+    ]
+```
+
+### Slots
+
+Use `Slot()` for the default slot (receives `*children`), `Slot("name")` for named slots.
+
+```python
+class Modal(Component):
+    tag = "div"
+    class_name = "modal"
+
+    def template(self, title: str):
+        return [
+            Div(H2(title), Slot("actions"), cls="header"),
+            Div(Slot(), cls="body"),
+            Div(Slot("footer", default=Button("Close")), cls="footer")
+        ]
+
+# Usage - named slots via kwargs
+Modal("Confirm",
+    Paragraph("Are you sure?"),              # default slot
+    actions=Button("X"),                     # named slot
+    footer=[Button("Cancel"), Button("OK")]  # named slot (list)
+)
+```
+
+**Slot rules:**
+- `Slot()` — default slot, receives positional `*children`
+- `Slot("name")` — named slot, receives `name=` kwarg
+- `Slot("name", default=element)` — fallback content if slot not provided
+- Named slot kwargs accept single element or list
+- Empty slots render nothing
+
+### Props vs Attributes
+
+Arguments are separated automatically:
+
+1. **HTMLElement args** → default slot children
+2. **Non-HTMLElement positional args** → props (matched to `template()` params)
+3. **Kwargs matching template params** → props
+4. **Kwargs matching slot names** → slot content
+5. **Other kwargs** → HTML attributes on root element
+
+```python
+class Alert(Component):
+    def template(self, message: str, level: str = "info"):
+        return [Slot("icon"), Span(message)]
+
+Alert("Hello",                    # prop: message
+    level="warning",              # prop (template param)
+    icon=Icon("warning"),         # slot
+    id="alert-1",                 # HTML attr
+    role="alert"                  # HTML attr
+)
+```
+
+### Class Name Merging
+
+User-provided `class_name` merges with the default (appends):
+
+```python
+class Card(Component):
+    class_name = "card"
+
+Card("Title", class_name="featured")
+# → <div class="card featured">...</div>
+```
+
+### Lifecycle Hooks
+
+Components inherit HTMLElement lifecycle hooks:
+
+```python
+class MyComponent(Component):
+    def on_load(self): ...           # After construction
+    def on_before_render(self): ...  # Before render()
+    def on_after_render(self): ...   # After render()
+```
+
+---
+
 ## Styling System
 
 ### CSSStyle
@@ -551,7 +681,24 @@ container = (Div()
     .append(Paragraph("Get started today.")))
 ```
 
-### Custom Component Class
+### Custom Component (Recommended)
+```python
+from nitro_ui import Component, Slot, Div, H2, Paragraph
+
+class Card(Component):
+    tag = "div"
+    class_name = "card"
+
+    def template(self, title: str):
+        return [
+            H2(title, cls="card-title"),
+            Div(Slot(), cls="card-body")
+        ]
+
+card = Card("My Card", Paragraph("Card content here"), id="card-1")
+```
+
+### Custom Component (Alternative - Direct Subclass)
 ```python
 from nitro_ui import HTMLElement, H2, Paragraph
 
@@ -693,3 +840,4 @@ When generating NitroUI code:
 - [ ] All manipulation methods return `self` for chaining (except `replace_child`, `generate_id`)
 - [ ] Use `Fragment` when you need multiple elements without a wrapper
 - [ ] Use `Partial` for raw HTML (analytics, embeds) - bypasses escaping
+- [ ] Use `Component` + `Slot` for reusable components with declarative templates

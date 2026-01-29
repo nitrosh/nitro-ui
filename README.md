@@ -112,19 +112,24 @@ card = (Div()
 ```python
 from nitro_ui import *
 
-class Card(HTMLElement):
-    def __init__(self, title, *children, **kwargs):
-        super().__init__(**{**kwargs, "tag": "div"})
-        self.add_attribute("class", "card")
-        self.append(H3(title, cls="card-title"))
-        for child in children:
-            self.append(child)
+class Card(Component):
+    tag = "div"
+    class_name = "card"
 
-class Alert(HTMLElement):
-    def __init__(self, message, variant="info", **kwargs):
-        super().__init__(**{**kwargs, "tag": "div"})
-        self.add_attributes([("class", f"alert alert-{variant}"), ("role", "alert")])
-        self.append(Paragraph(message))
+    def template(self, title: str):
+        return [
+            H3(title, cls="card-title"),
+            Slot()  # children go here
+        ]
+
+class Alert(Component):
+    tag = "div"
+    class_name = "alert"
+
+    def template(self, message: str, variant: str = "info"):
+        self.add_attribute("class", f"alert-{variant}")
+        self.add_attribute("role", "alert")
+        return [Paragraph(message), Slot()]
 
 # Usage
 page = Div(
@@ -133,6 +138,28 @@ page = Div(
         Paragraph("Total users: 1,234"),
         Paragraph("Active today: 89")
     )
+)
+```
+
+Components support named slots for complex layouts:
+
+```python
+class Modal(Component):
+    tag = "div"
+    class_name = "modal"
+
+    def template(self, title: str):
+        return [
+            Div(H2(title), Slot("actions"), cls="modal-header"),
+            Div(Slot(), cls="modal-body"),
+            Div(Slot("footer"), cls="modal-footer")
+        ]
+
+# Named slots via kwargs
+Modal("Confirm Delete",
+    Paragraph("Are you sure?"),
+    actions=Button("×", cls="close"),
+    footer=[Button("Cancel"), Button("Delete", cls="danger")]
 )
 ```
 
