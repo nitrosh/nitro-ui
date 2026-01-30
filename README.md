@@ -293,6 +293,25 @@ def table_rows(items):
     ])
 ```
 
+### Form Builder
+
+Generate HTML5 forms with validation using the `Field` class:
+
+```python
+from nitro_ui import *
+
+form = Form(
+    Field.email("email", label="Email", required=True),
+    Field.password("password", label="Password", min_length=8),
+    Field.select("country", ["USA", "Canada", "Mexico"], label="Country"),
+    Field.checkbox("terms", label="I agree to the Terms", required=True),
+    Button("Sign Up", type="submit"),
+    action="/register"
+)
+```
+
+Field types: `text`, `email`, `password`, `url`, `tel`, `search`, `textarea`, `number`, `range`, `date`, `time`, `datetime_local`, `select`, `checkbox`, `radio`, `file`, `hidden`, `color`. See [SKILL.md](SKILL.md) for full API.
+
 ### HTMX Integration
 
 Build interactive UIs without JavaScript. NitroUI converts `hx_*` kwargs to `hx-*` attributes automatically:

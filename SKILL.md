@@ -805,6 +805,102 @@ def home(request):
 
 ---
 
+## Form Builder
+
+Generate HTML5 form fields with validation attributes using the `Field` class.
+
+```python
+from nitro_ui import Form, Button, Field
+
+form = Form(
+    Field.email("email", label="Email", required=True, placeholder="you@example.com"),
+    Field.password("password", label="Password", min_length=8),
+    Field.checkbox("remember", label="Remember me"),
+    Button("Log In", type="submit"),
+    action="/login",
+    method="post"
+)
+```
+
+### Text Fields
+
+```python
+Field.text(name, label=None, required=False, min_length=None, max_length=None, pattern=None, placeholder=None, value=None, wrapper=None, **attrs)
+Field.email(name, label=None, required=False, placeholder=None, value=None, wrapper=None, **attrs)
+Field.password(name, label=None, required=False, min_length=None, max_length=None, placeholder=None, wrapper=None, **attrs)
+Field.url(name, label=None, required=False, placeholder=None, value=None, wrapper=None, **attrs)
+Field.tel(name, label=None, required=False, pattern=None, placeholder=None, value=None, wrapper=None, **attrs)
+Field.search(name, label=None, required=False, placeholder=None, value=None, wrapper=None, **attrs)
+Field.textarea(name, label=None, required=False, rows=None, cols=None, min_length=None, max_length=None, placeholder=None, value=None, wrapper=None, **attrs)
+```
+
+### Numeric & Date Fields
+
+```python
+Field.number(name, label=None, required=False, min=None, max=None, step=None, value=None, wrapper=None, **attrs)
+Field.range(name, label=None, min=0, max=100, step=None, value=None, wrapper=None, **attrs)
+Field.date(name, label=None, required=False, min=None, max=None, value=None, wrapper=None, **attrs)
+Field.time(name, label=None, required=False, min=None, max=None, value=None, wrapper=None, **attrs)
+Field.datetime_local(name, label=None, required=False, min=None, max=None, value=None, wrapper=None, **attrs)
+```
+
+### Selection Fields
+
+```python
+# Select with different option formats
+Field.select("country", ["USA", "Canada", "Mexico"])  # strings
+Field.select("status", [("active", "Active"), ("inactive", "Inactive")])  # tuples
+Field.select("priority", [{"value": "1", "label": "Low", "disabled": True}])  # dicts
+
+# Pre-selected value
+Field.select("country", ["USA", "Canada"], value="Canada", label="Country")
+
+# Checkbox (label wraps input)
+Field.checkbox("terms", label="I agree to the Terms", required=True)
+
+# Radio buttons (wrapped in fieldset)
+Field.radio("plan", [("free", "Free"), ("pro", "Pro")], label="Select Plan", value="free")
+```
+
+### Other Fields
+
+```python
+Field.file(name, label=None, required=False, accept=None, multiple=False, wrapper=None, **attrs)
+Field.hidden(name, value, **attrs)
+Field.color(name, label=None, value=None, wrapper=None, **attrs)
+```
+
+### Labels and Wrappers
+
+```python
+# No label - just input
+Field.text("username")
+
+# With label
+Field.text("username", label="Username")
+# → <label for="username">Username</label><input ...>
+
+# With wrapper div
+Field.text("username", label="Username", wrapper="form-field")
+# → <div class="form-field"><label>...</label><input ...></div>
+
+# Wrapper with attributes
+Field.text("username", label="Username", wrapper={"cls": "form-group", "id": "field-1"})
+```
+
+### With HTMX
+
+```python
+Field.text("search",
+    placeholder="Search...",
+    hx_get="/search",
+    hx_trigger="keyup changed delay:300ms",
+    hx_target="#results"
+)
+```
+
+---
+
 ## HTMX Integration
 
 NitroUI works seamlessly with [HTMX](https://htmx.org/). Use `hx_*` kwargs — underscores convert to hyphens automatically.
@@ -934,3 +1030,4 @@ When generating NitroUI code:
 - [ ] Use `Fragment` when you need multiple elements without a wrapper
 - [ ] Use `Partial` for raw HTML (analytics, embeds) - bypasses escaping
 - [ ] Use `Component` + `Slot` for reusable components with declarative templates
+- [ ] Use `Field.xyz()` for form fields with HTML5 validation attributes
