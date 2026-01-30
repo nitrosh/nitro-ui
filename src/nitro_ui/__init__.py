@@ -4,6 +4,7 @@ from .core.partial import Partial
 from .core.parser import from_html
 from .core.slot import Slot
 from .core.component import Component
+from .forms import Field
 from .tags.form import (
     Textarea,
     Select,
@@ -132,6 +133,7 @@ __all__ = [
     "from_html",
     "Slot",
     "Component",
+    "Field",
     # styles
     "CSSStyle",
     "StyleSheet",
