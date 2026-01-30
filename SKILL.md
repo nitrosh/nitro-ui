@@ -805,6 +805,99 @@ def home(request):
 
 ---
 
+## HTMX Integration
+
+NitroUI works seamlessly with [HTMX](https://htmx.org/). Use `hx_*` kwargs — underscores convert to hyphens automatically.
+
+### Basic Usage
+
+```python
+from nitro_ui import Button, Div, Input, Script
+
+# Include HTMX
+Script(src="https://unpkg.com/htmx.org@2.0.4")
+
+# hx_get → hx-get, hx_target → hx-target, etc.
+Button("Load More", hx_get="/items", hx_target="#list", hx_swap="beforeend")
+```
+
+### Common Patterns
+
+```python
+# Click to load
+Button("Load", hx_get="/content", hx_target="#result")
+
+# Delete with confirmation
+Button("Delete", hx_delete="/items/1", hx_confirm="Are you sure?", hx_swap="outerHTML")
+
+# Live search
+Input(
+    type="text",
+    name="q",
+    hx_get="/search",
+    hx_trigger="keyup changed delay:300ms",
+    hx_target="#results"
+)
+
+# Form submission
+Form(
+    Input(type="text", name="email"),
+    Button("Subscribe"),
+    hx_post="/subscribe",
+    hx_swap="outerHTML"
+)
+
+# Infinite scroll
+Div(
+    hx_get="/items?page=2",
+    hx_trigger="revealed",
+    hx_swap="afterend"
+)
+
+# Polling
+Div(id="notifications", hx_get="/notifications", hx_trigger="every 30s")
+```
+
+### All HTMX Attributes
+
+| Python kwarg | HTML attribute | Description |
+|--------------|----------------|-------------|
+| `hx_get` | `hx-get` | GET request |
+| `hx_post` | `hx-post` | POST request |
+| `hx_put` | `hx-put` | PUT request |
+| `hx_patch` | `hx-patch` | PATCH request |
+| `hx_delete` | `hx-delete` | DELETE request |
+| `hx_target` | `hx-target` | Target element selector |
+| `hx_swap` | `hx-swap` | How to swap content |
+| `hx_trigger` | `hx-trigger` | Event that triggers request |
+| `hx_confirm` | `hx-confirm` | Confirmation dialog |
+| `hx_indicator` | `hx-indicator` | Loading indicator |
+| `hx_push_url` | `hx-push-url` | Push URL to history |
+| `hx_select` | `hx-select` | Select content from response |
+| `hx_select_oob` | `hx-select-oob` | Out-of-band select |
+| `hx_swap_oob` | `hx-swap-oob` | Out-of-band swap |
+| `hx_vals` | `hx-vals` | Additional values (JSON) |
+| `hx_boost` | `hx-boost` | Boost all links/forms |
+| `hx_include` | `hx-include` | Include additional inputs |
+| `hx_params` | `hx-params` | Filter parameters |
+| `hx_preserve` | `hx-preserve` | Preserve element |
+| `hx_ext` | `hx-ext` | Extensions |
+
+### HTMX Extensions
+
+```python
+# Server-Sent Events
+Div(hx_ext="sse", sse_connect="/events", sse_swap="message")
+
+# WebSockets
+Div(hx_ext="ws", ws_connect="/ws")
+
+# JSON encoding
+Form(hx_ext="json-enc", hx_post="/api/submit")
+```
+
+---
+
 ## Security
 
 - **Automatic HTML escaping**: All text content and attribute values are escaped

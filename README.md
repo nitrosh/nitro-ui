@@ -293,6 +293,35 @@ def table_rows(items):
     ])
 ```
 
+### HTMX Integration
+
+Build interactive UIs without JavaScript. NitroUI converts `hx_*` kwargs to `hx-*` attributes automatically:
+
+```python
+from nitro_ui import *
+
+# Live search
+Input(
+    type="text",
+    hx_get="/search",
+    hx_trigger="keyup changed delay:300ms",
+    hx_target="#results"
+)
+
+# Delete with confirmation
+Button(
+    "Delete",
+    hx_delete="/items/1",
+    hx_confirm="Are you sure?",
+    hx_swap="outerHTML"
+)
+
+# Load more
+Button("Load More", hx_get="/items?page=2", hx_target="#list", hx_swap="beforeend")
+```
+
+All HTMX attributes are supported: `hx_get`, `hx_post`, `hx_put`, `hx_delete`, `hx_target`, `hx_swap`, `hx_trigger`, `hx_confirm`, `hx_indicator`, `hx_boost`, and more. See [SKILL.md](SKILL.md) for the complete reference.
+
 ### Raw HTML Partials
 
 Embed raw HTML for trusted content like analytics tags:
