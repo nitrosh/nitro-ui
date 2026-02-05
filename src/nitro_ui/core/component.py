@@ -139,10 +139,7 @@ class Component(HTMLElement):
     def _get_template_params(self) -> List[str]:
         """Get the parameter names of the template method (excluding self)."""
         sig = inspect.signature(self.template)
-        return [
-            name for name, param in sig.parameters.items()
-            if name != "self"
-        ]
+        return [name for name, param in sig.parameters.items() if name != "self"]
 
     def _find_slot_names(self, items: Any) -> Set[str]:
         """Recursively find all named slot names in the template structure."""

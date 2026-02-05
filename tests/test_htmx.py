@@ -44,7 +44,9 @@ class TestHTMXAttributes(unittest.TestCase):
 
     def test_hx_trigger(self):
         """Test hx-trigger attribute."""
-        inp = Input(type="text", hx_get="/search", hx_trigger="keyup changed delay:500ms")
+        inp = Input(
+            type="text", hx_get="/search", hx_trigger="keyup changed delay:500ms"
+        )
         self.assertIn('hx-trigger="keyup changed delay:500ms"', str(inp))
 
     def test_hx_confirm(self):
@@ -114,7 +116,7 @@ class TestHTMXAttributes(unittest.TestCase):
             hx_get="/items",
             hx_target="#list",
             hx_swap="beforeend",
-            hx_indicator="#spinner"
+            hx_indicator="#spinner",
         )
         rendered = str(btn)
         self.assertIn('hx-get="/items"', rendered)
@@ -130,7 +132,7 @@ class TestHTMXAttributes(unittest.TestCase):
             cls="btn btn-danger",
             hx_delete="/items/1",
             hx_confirm="Are you sure?",
-            disabled=True
+            disabled=True,
         )
         rendered = str(btn)
         self.assertIn('id="delete-btn"', rendered)
@@ -141,9 +143,15 @@ class TestHTMXAttributes(unittest.TestCase):
     def test_form_with_htmx(self):
         """Test form with HTMX attributes."""
         form = Form(
-            Input(type="text", name="query", hx_get="/search", hx_trigger="keyup changed delay:300ms", hx_target="#results"),
+            Input(
+                type="text",
+                name="query",
+                hx_get="/search",
+                hx_trigger="keyup changed delay:300ms",
+                hx_target="#results",
+            ),
             Div(id="results"),
-            hx_boost="true"
+            hx_boost="true",
         )
         rendered = str(form)
         self.assertIn('hx-boost="true"', rendered)

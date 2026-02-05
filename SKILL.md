@@ -21,46 +21,24 @@ print(page.render())
 
 ---
 
-## Two Import Styles
+## Imports
 
-### PascalCase (Traditional)
+### Standard Import
 ```python
 from nitro_ui import Div, H1, Paragraph, UnorderedList, ListItem, Image
 ```
 
-### Lowercase HTML-like
+### Core Classes
 ```python
-from nitro_ui.html import div, h1, p, ul, li, img, a, table, tr, td
-
-page = div(
-    h1("Title"),
-    p("This looks like HTML!"),
-    ul(
-        li(a("Home", href="/")),
-        li(a("About", href="/about")),
-    ),
-    cls="container"
-)
+from nitro_ui import HTMLElement, Fragment, Component, Slot, Partial, from_html
 ```
 
-### Python Keyword Conflicts (trailing underscore)
+### Styling System
 ```python
-from nitro_ui.html import del_, input_, object_, map_
-
-form_field = input_(type="text", name="username")  # <input>
-deleted = del_("removed text")                      # <del>
-```
-
-### Selective Core Imports
-```python
-from nitro_ui.core.element import HTMLElement
-from nitro_ui.core.fragment import Fragment
-from nitro_ui.core.partial import Partial
-from nitro_ui.core.component import Component
-from nitro_ui.core.slot import Slot
-from nitro_ui.core.parser import from_html
 from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 ```
+
+Lowercase HTML-like aliases (`div`, `p`, `a`, etc.) are also available via `from nitro_ui.html import *`.
 
 ---
 
@@ -379,7 +357,7 @@ class Card(Component):
 card = Card("My Title",
     Paragraph("Content goes here"),
     id="card-1",
-    class_name="featured"
+    cls="featured"
 )
 # <div class="card featured" id="card-1">
 #     <h3 class="card-title">My Title</h3>
@@ -463,13 +441,13 @@ Alert("Hello",                    # prop: message
 
 ### Class Name Merging
 
-User-provided `class_name` merges with the default (appends):
+User-provided `cls` merges with the Component's default `class_name` (appends):
 
 ```python
 class Card(Component):
     class_name = "card"
 
-Card("Title", class_name="featured")
+Card("Title", cls="featured")
 # → <div class="card featured">...</div>
 ```
 
@@ -622,13 +600,13 @@ html = page.render(pretty=True)
 
 ### Navigation
 ```python
-from nitro_ui.html import nav, ul, li, a
+from nitro_ui import Nav, UnorderedList, ListItem, Href
 
-navbar = nav(
-    ul(
-        li(a("Home", href="/")),
-        li(a("About", href="/about")),
-        li(a("Contact", href="/contact")),
+navbar = Nav(
+    UnorderedList(
+        ListItem(Href("Home", href="/")),
+        ListItem(Href("About", href="/about")),
+        ListItem(Href("Contact", href="/contact")),
     ),
     cls="navbar"
 )
@@ -636,14 +614,14 @@ navbar = nav(
 
 ### Form
 ```python
-from nitro_ui.html import form, label, input_, button
+from nitro_ui import Form, Label, Input, Button
 
-login_form = form(
-    label("Email:", for_element="email"),
-    input_(type="email", id="email", name="email", required=True),
-    label("Password:", for_element="password"),
-    input_(type="password", id="password", name="password", required=True),
-    button("Log In", type="submit"),
+login_form = Form(
+    Label("Email:", for_element="email"),
+    Input(type="email", id="email", name="email", required=True),
+    Label("Password:", for_element="password"),
+    Input(type="password", id="password", name="password", required=True),
+    Button("Log In", type="submit"),
     action="/login",
     method="post"
 )
@@ -651,14 +629,14 @@ login_form = form(
 
 ### Table from Data
 ```python
-from nitro_ui.html import table, thead, tbody, tr, th, td
+from nitro_ui import Table, TableHeader, TableBody, TableRow, TableHeaderCell, TableDataCell
 
 data = [{"name": "Alice", "age": 30}, {"name": "Bob", "age": 25}]
 
-t = table(
-    thead(tr(th("Name"), th("Age"))),
-    tbody(*[
-        tr(td(row["name"]), td(str(row["age"])))
+t = Table(
+    TableHeader(TableRow(TableHeaderCell("Name"), TableHeaderCell("Age"))),
+    TableBody(*[
+        TableRow(TableDataCell(row["name"]), TableDataCell(str(row["age"])))
         for row in data
     ])
 )
@@ -666,10 +644,10 @@ t = table(
 
 ### Dynamic List
 ```python
-from nitro_ui.html import ul, li
+from nitro_ui import UnorderedList, ListItem
 
 items = ["Apple", "Banana", "Orange"]
-list_element = ul(*[li(item) for item in items])
+list_element = UnorderedList(*[ListItem(item) for item in items])
 ```
 
 ### Method Chaining
@@ -718,7 +696,7 @@ card = Card("My Card", "Card content here", id="card-1")
 from nitro_ui import from_html, Paragraph
 
 element = from_html('<div class="old"><h1>Title</h1></div>')
-element.add_attribute("class_name", "new")
+element.add_attribute("class", "new")
 element.add_style("padding", "20px")
 element.append(Paragraph("New content"))
 html = element.render()
@@ -763,42 +741,42 @@ page = HTML(
 ```python
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-from nitro_ui.html import html, head, body, title, h1
+from nitro_ui import HTML, Head, Body, Title, H1
 
 app = FastAPI()
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return html(
-        head(title("FastAPI + NitroUI")),
-        body(h1("Hello!"))
+    return HTML(
+        Head(Title("FastAPI + NitroUI")),
+        Body(H1("Hello!"))
     ).render()
 ```
 
 ### Flask
 ```python
 from flask import Flask
-from nitro_ui.html import html, head, body, title, h1
+from nitro_ui import HTML, Head, Body, Title, H1
 
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return html(
-        head(title("Flask + NitroUI")),
-        body(h1("Hello!"))
+    return HTML(
+        Head(Title("Flask + NitroUI")),
+        Body(H1("Hello!"))
     ).render()
 ```
 
 ### Django
 ```python
 from django.http import HttpResponse
-from nitro_ui.html import html, head, body, title, h1
+from nitro_ui import HTML, Head, Body, Title, H1
 
 def home(request):
-    page = html(
-        head(title("Django + NitroUI")),
-        body(h1("Hello!"))
+    page = HTML(
+        Head(Title("Django + NitroUI")),
+        Body(H1("Hello!"))
     )
     return HttpResponse(page.render())
 ```
@@ -1008,7 +986,7 @@ Form(hx_ext="json-enc", hx_post="/api/submit")
 ## Gotchas
 
 - **Package name mismatch**: PyPI is `nitro-ui`, import is `nitro_ui`
-- **HtmlLink vs Href**: `Href`/`a` is for `<a>` links. `HtmlLink`/`link` is for `<link>` tags.
+- **HtmlLink vs Href**: `Href` is for `<a>` links. `HtmlLink` is for `<link>` tags.
 - **`get_attributes()` returns a copy**: Mutating the returned dict does not affect the element. Use `add_attribute()` to modify.
 - **`replace_child()` and `generate_id()` return `None`**: Not chainable, unlike other methods.
 - **`from_dict()` expects normalized keys**: Designed for round-tripping with `to_dict()`. Attribute keys should already be in their final form (e.g. `data-value`, not `data_value`).
@@ -1019,10 +997,9 @@ Form(hx_ext="json-enc", hx_post="/api/submit")
 
 When generating NitroUI code:
 
-- [ ] Choose import style: PascalCase (`from nitro_ui import`) or lowercase (`from nitro_ui.html import`)
-- [ ] Use `cls` for CSS classes (or `class_name` - both work, `cls` is shorter)
+- [ ] Use PascalCase imports: `from nitro_ui import Div, H1, Paragraph`
+- [ ] Use `cls` for CSS classes (e.g., `Div(cls="container")`)
 - [ ] Use `for_element` not `for` (Python keyword)
-- [ ] Use `input_`, `del_`, `object_`, `map_` for Python keyword conflicts (lowercase only)
 - [ ] Children go as positional args, attributes as keyword args
 - [ ] Call `.render()` to get HTML string
 - [ ] Use `pretty=True` for readable output during development

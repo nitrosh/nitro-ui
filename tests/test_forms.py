@@ -21,12 +21,12 @@ class TestFieldText(unittest.TestCase):
         field = Field.text("username", label="Username")
         rendered = str(field)
         self.assertIn('<label for="username">Username</label>', rendered)
-        self.assertIn('<input', rendered)
+        self.assertIn("<input", rendered)
 
     def test_text_required(self):
         """Test required text field."""
         field = Field.text("username", required=True)
-        self.assertIn('required', str(field))
+        self.assertIn("required", str(field))
 
     def test_text_min_max_length(self):
         """Test text field with length constraints."""
@@ -71,11 +71,13 @@ class TestFieldEmail(unittest.TestCase):
 
     def test_email_with_all_options(self):
         """Test email field with all options."""
-        field = Field.email("email", label="Email", required=True, placeholder="you@example.com")
+        field = Field.email(
+            "email", label="Email", required=True, placeholder="you@example.com"
+        )
         rendered = str(field)
         self.assertIn('<label for="email">Email</label>', rendered)
         self.assertIn('type="email"', rendered)
-        self.assertIn('required', rendered)
+        self.assertIn("required", rendered)
         self.assertIn('placeholder="you@example.com"', rendered)
 
 
@@ -132,7 +134,7 @@ class TestFieldTextarea(unittest.TestCase):
         """Test basic textarea."""
         field = Field.textarea("message")
         rendered = str(field)
-        self.assertIn('<textarea', rendered)
+        self.assertIn("<textarea", rendered)
         self.assertIn('name="message"', rendered)
 
     def test_textarea_rows_cols(self):
@@ -145,7 +147,7 @@ class TestFieldTextarea(unittest.TestCase):
     def test_textarea_value(self):
         """Test textarea with default value."""
         field = Field.textarea("message", value="Hello world")
-        self.assertIn('Hello world', str(field))
+        self.assertIn("Hello world", str(field))
 
 
 class TestFieldNumber(unittest.TestCase):
@@ -229,7 +231,7 @@ class TestFieldSelect(unittest.TestCase):
         """Test select with string options."""
         field = Field.select("country", ["USA", "Canada", "Mexico"])
         rendered = str(field)
-        self.assertIn('<select', rendered)
+        self.assertIn("<select", rendered)
         self.assertIn('<option value="USA">USA</option>', rendered)
         self.assertIn('<option value="Canada">Canada</option>', rendered)
         self.assertIn('<option value="Mexico">Mexico</option>', rendered)
@@ -243,18 +245,21 @@ class TestFieldSelect(unittest.TestCase):
 
     def test_select_dict_options(self):
         """Test select with dict options."""
-        field = Field.select("priority", [
-            {"value": "1", "label": "Low"},
-            {"value": "2", "label": "High", "disabled": True}
-        ])
+        field = Field.select(
+            "priority",
+            [
+                {"value": "1", "label": "Low"},
+                {"value": "2", "label": "High", "disabled": True},
+            ],
+        )
         rendered = str(field)
         self.assertIn('<option value="1">Low</option>', rendered)
-        self.assertIn('disabled', rendered)
+        self.assertIn("disabled", rendered)
 
     def test_select_with_value(self):
         """Test select with pre-selected value."""
         field = Field.select("country", ["USA", "Canada"], value="Canada")
-        self.assertIn('selected', str(field))
+        self.assertIn("selected", str(field))
 
     def test_select_with_label(self):
         """Test select with label."""
@@ -277,17 +282,17 @@ class TestFieldCheckbox(unittest.TestCase):
     def test_checkbox_checked(self):
         """Test checked checkbox."""
         field = Field.checkbox("subscribe", checked=True)
-        self.assertIn('checked', str(field))
+        self.assertIn("checked", str(field))
 
     def test_checkbox_with_label(self):
         """Test checkbox with label wrapping input."""
         field = Field.checkbox("subscribe", label="Subscribe to newsletter")
         rendered = str(field)
-        self.assertIn('<label>', rendered)
-        self.assertIn('Subscribe to newsletter', rendered)
+        self.assertIn("<label>", rendered)
+        self.assertIn("Subscribe to newsletter", rendered)
         # Label wraps input, with input first
-        self.assertIn('<label><input', rendered)
-        self.assertIn('</label>', rendered)
+        self.assertIn("<label><input", rendered)
+        self.assertIn("</label>", rendered)
 
     def test_checkbox_custom_value(self):
         """Test checkbox with custom value."""
@@ -297,7 +302,7 @@ class TestFieldCheckbox(unittest.TestCase):
     def test_checkbox_required(self):
         """Test required checkbox."""
         field = Field.checkbox("terms", required=True)
-        self.assertIn('required', str(field))
+        self.assertIn("required", str(field))
 
 
 class TestFieldRadio(unittest.TestCase):
@@ -307,7 +312,7 @@ class TestFieldRadio(unittest.TestCase):
         """Test basic radio buttons."""
         field = Field.radio("plan", [("free", "Free"), ("pro", "Pro")])
         rendered = str(field)
-        self.assertIn('<fieldset', rendered)
+        self.assertIn("<fieldset", rendered)
         self.assertIn('type="radio"', rendered)
         self.assertIn('name="plan"', rendered)
         self.assertIn('value="free"', rendered)
@@ -317,13 +322,13 @@ class TestFieldRadio(unittest.TestCase):
         """Test radio buttons with legend."""
         field = Field.radio("plan", [("free", "Free")], label="Select Plan")
         rendered = str(field)
-        self.assertIn('<legend>Select Plan</legend>', rendered)
+        self.assertIn("<legend>Select Plan</legend>", rendered)
 
     def test_radio_with_value(self):
         """Test radio buttons with pre-selected value."""
         field = Field.radio("plan", [("free", "Free"), ("pro", "Pro")], value="pro")
         # The pro option should be checked
-        self.assertIn('checked', str(field))
+        self.assertIn("checked", str(field))
 
 
 class TestFieldFile(unittest.TestCase):
@@ -342,7 +347,7 @@ class TestFieldFile(unittest.TestCase):
     def test_file_multiple(self):
         """Test file field with multiple."""
         field = Field.file("documents", multiple=True)
-        self.assertIn('multiple', str(field))
+        self.assertIn("multiple", str(field))
 
 
 class TestFieldHidden(unittest.TestCase):
@@ -379,13 +384,17 @@ class TestFieldWrapper(unittest.TestCase):
         field = Field.text("username", label="Username", wrapper="form-field")
         rendered = str(field)
         self.assertIn('<div class="form-field">', rendered)
-        self.assertIn('<label', rendered)
-        self.assertIn('<input', rendered)
-        self.assertIn('</div>', rendered)
+        self.assertIn("<label", rendered)
+        self.assertIn("<input", rendered)
+        self.assertIn("</div>", rendered)
 
     def test_wrapper_dict(self):
         """Test wrapper with dict attributes."""
-        field = Field.text("username", label="Username", wrapper={"cls": "form-group", "id": "username-field"})
+        field = Field.text(
+            "username",
+            label="Username",
+            wrapper={"cls": "form-group", "id": "username-field"},
+        )
         rendered = str(field)
         self.assertIn('class="form-group"', rendered)
         self.assertIn('id="username-field"', rendered)
@@ -394,9 +403,9 @@ class TestFieldWrapper(unittest.TestCase):
         """Test field without label or wrapper returns just input."""
         field = Field.text("username")
         rendered = str(field)
-        self.assertTrue(rendered.startswith('<input'))
-        self.assertNotIn('<div', rendered)
-        self.assertNotIn('<label', rendered)
+        self.assertTrue(rendered.startswith("<input"))
+        self.assertNotIn("<div", rendered)
+        self.assertNotIn("<label", rendered)
 
 
 class TestFieldExtraAttrs(unittest.TestCase):
@@ -411,7 +420,9 @@ class TestFieldExtraAttrs(unittest.TestCase):
 
     def test_htmx_attrs(self):
         """Test HTMX attributes work with fields."""
-        field = Field.text("search", hx_get="/search", hx_trigger="keyup changed delay:300ms")
+        field = Field.text(
+            "search", hx_get="/search", hx_trigger="keyup changed delay:300ms"
+        )
         rendered = str(field)
         self.assertIn('hx-get="/search"', rendered)
         self.assertIn('hx-trigger="keyup changed delay:300ms"', rendered)
@@ -428,16 +439,16 @@ class TestFieldInForm(unittest.TestCase):
             Field.checkbox("remember", label="Remember me"),
             Button("Log In", type="submit"),
             action="/login",
-            method="post"
+            method="post",
         )
         rendered = str(form)
-        self.assertIn('<form', rendered)
+        self.assertIn("<form", rendered)
         self.assertIn('action="/login"', rendered)
         self.assertIn('method="post"', rendered)
         self.assertIn('type="email"', rendered)
         self.assertIn('type="password"', rendered)
         self.assertIn('type="checkbox"', rendered)
-        self.assertIn('<button', rendered)
+        self.assertIn("<button", rendered)
 
 
 if __name__ == "__main__":

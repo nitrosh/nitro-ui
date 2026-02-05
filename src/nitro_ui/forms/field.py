@@ -93,7 +93,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a text input field.
 
@@ -121,7 +121,7 @@ class Field:
             pattern=pattern,
             placeholder=placeholder,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -135,7 +135,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create an email input field."""
         field_id = id or name
@@ -146,7 +146,7 @@ class Field:
             required=required if required else None,
             placeholder=placeholder,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -161,7 +161,7 @@ class Field:
         placeholder: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a password input field."""
         field_id = id or name
@@ -173,7 +173,7 @@ class Field:
             minlength=min_length,
             maxlength=max_length,
             placeholder=placeholder,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -187,7 +187,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a URL input field."""
         field_id = id or name
@@ -198,7 +198,7 @@ class Field:
             required=required if required else None,
             placeholder=placeholder,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -213,7 +213,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a telephone input field."""
         field_id = id or name
@@ -225,7 +225,7 @@ class Field:
             pattern=pattern,
             placeholder=placeholder,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -239,7 +239,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a search input field."""
         field_id = id or name
@@ -250,7 +250,7 @@ class Field:
             required=required if required else None,
             placeholder=placeholder,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -268,7 +268,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a textarea field."""
         field_id = id or name
@@ -281,7 +281,7 @@ class Field:
             minlength=min_length,
             maxlength=max_length,
             placeholder=placeholder,
-            **attrs
+            **attrs,
         )
         # Textarea takes content as children, not value attribute
         if value:
@@ -305,7 +305,7 @@ class Field:
         value: Optional[Union[int, float]] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a number input field."""
         field_id = id or name
@@ -318,7 +318,7 @@ class Field:
             max=max,
             step=step,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -333,7 +333,7 @@ class Field:
         value: Optional[Union[int, float]] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a range slider input field."""
         field_id = id or name
@@ -345,7 +345,7 @@ class Field:
             max=max,
             step=step,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -364,7 +364,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a date input field.
 
@@ -380,7 +380,7 @@ class Field:
             min=min,
             max=max,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -395,7 +395,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a time input field.
 
@@ -411,7 +411,7 @@ class Field:
             min=min,
             max=max,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -426,7 +426,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a datetime-local input field.
 
@@ -442,7 +442,7 @@ class Field:
             min=min,
             max=max,
             value=value,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -460,7 +460,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a select dropdown field.
 
@@ -491,7 +491,9 @@ class Field:
             elif isinstance(opt, dict):
                 opt_value = opt.get("value", "")
                 opt_label = opt.get("label", opt_value)
-                opt_attrs = {k: v for k, v in opt.items() if k not in ("value", "label")}
+                opt_attrs = {
+                    k: v for k, v in opt.items() if k not in ("value", "label")
+                }
             else:
                 continue
 
@@ -502,10 +504,7 @@ class Field:
             option_elements.append(Option(opt_label, value=opt_value, **opt_attrs))
 
         select_attrs = _filter_none(
-            id=field_id,
-            name=name,
-            required=required if required else None,
-            **attrs
+            id=field_id, name=name, required=required if required else None, **attrs
         )
         sel = Select(*option_elements, **select_attrs)
         return _build_field(sel, name, label, wrapper, id)
@@ -519,7 +518,7 @@ class Field:
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
         required: bool = False,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a checkbox field.
 
@@ -542,7 +541,7 @@ class Field:
             value=value,
             checked=checked if checked else None,
             required=required if required else None,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
 
@@ -550,6 +549,7 @@ class Field:
         if label:
             # Use a fragment inside label to control order: input, space, text
             from nitro_ui.tags.text import Span
+
             labeled = Label(inp, Span(" " + label))
             if wrapper:
                 if isinstance(wrapper, str):
@@ -573,7 +573,7 @@ class Field:
         required: bool = False,
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a radio button group.
 
@@ -596,7 +596,9 @@ class Field:
             elif isinstance(opt, dict):
                 opt_value = opt.get("value", "")
                 opt_label = opt.get("label", opt_value)
-                opt_attrs = {k: v for k, v in opt.items() if k not in ("value", "label")}
+                opt_attrs = {
+                    k: v for k, v in opt.items() if k not in ("value", "label")
+                }
             else:
                 continue
 
@@ -606,10 +608,14 @@ class Field:
                 id=radio_id,
                 name=name,
                 value=opt_value,
-                required=required if required and i == 0 else None,  # Only first needs required
-                checked=True if value is not None and str(opt_value) == str(value) else None,
+                required=(
+                    required if required and i == 0 else None
+                ),  # Only first needs required
+                checked=(
+                    True if value is not None and str(opt_value) == str(value) else None
+                ),
                 **opt_attrs,
-                **attrs
+                **attrs,
             )
             inp = Input(**input_attrs)
             radio_elements.append(Label(inp, " ", opt_label))
@@ -640,7 +646,7 @@ class Field:
         multiple: bool = False,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a file upload field.
 
@@ -661,17 +667,13 @@ class Field:
             required=required if required else None,
             accept=accept,
             multiple=multiple if multiple else None,
-            **attrs
+            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
 
     @staticmethod
-    def hidden(
-        name: str,
-        value: str,
-        **attrs
-    ) -> HTMLElement:
+    def hidden(name: str, value: str, **attrs) -> HTMLElement:
         """Create a hidden input field.
 
         Args:
@@ -687,7 +689,7 @@ class Field:
         value: Optional[str] = None,
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> HTMLElement:
         """Create a color picker field.
 
@@ -700,11 +702,7 @@ class Field:
         """
         field_id = id or name
         input_attrs = _filter_none(
-            type="color",
-            id=field_id,
-            name=name,
-            value=value,
-            **attrs
+            type="color", id=field_id, name=name, value=value, **attrs
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)

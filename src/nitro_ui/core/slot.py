@@ -51,7 +51,9 @@ class Slot(HTMLElement):
             return f"Slot({self.slot_name!r})"
         return "Slot()"
 
-    def render(self, pretty: bool = False, _indent: int = 0, max_depth: int = 1000) -> str:
+    def render(
+        self, pretty: bool = False, _indent: int = 0, max_depth: int = 1000
+    ) -> str:
         """Slots should never render directly - they get replaced by Component."""
         # Return empty string if somehow rendered directly
         return ""

@@ -65,6 +65,7 @@ class TestSlot(unittest.TestCase):
     def test_slot_can_be_child(self):
         """Test that Slot can be used as a child of other elements."""
         from nitro_ui.tags.layout import Div
+
         # This should not raise
         div = Div(Slot(), cls="container")
         # Slot should be in children

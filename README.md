@@ -11,8 +11,8 @@ page = HTML(
     Head(Title("Dashboard")),
     Body(
         Nav(
-            Link("Home", href="/"),
-            Link("Settings", href="/settings", cls="active")
+            Href("Home", href="/"),
+            Href("Settings", href="/settings", cls="active")
         ),
         Main(
             H1("Welcome back!"),
@@ -52,27 +52,6 @@ npx skills add nitrosh/nitro-ui
 
 ## Quick Examples
 
-### HTML-like Syntax
-
-Prefer lowercase tag names that look like real HTML? Use `nitro_ui.html`:
-
-```python
-from nitro_ui.html import div, h1, p, ul, li, a, img
-
-page = div(
-    h1("Welcome"),
-    p("This looks just like HTML!"),
-    ul(
-        li(a("Home", href="/")),
-        li(a("About", href="/about")),
-    ),
-    img(src="hero.jpg", alt="Hero image"),
-    cls="container"
-)
-```
-
-All standard HTML tags are available as lowercase functions. Python keywords use a trailing underscore: `del_`, `input_`, `object_`, `map_`.
-
 ### Dynamic Content
 
 ```python
@@ -83,7 +62,7 @@ def render_user_card(user):
         Image(src=user["avatar"], alt=user["name"]),
         H3(user["name"]),
         Paragraph(user["bio"]),
-        Link("View Profile", href=f"/users/{user['id']}"),
+        Href("View Profile", href=f"/users/{user['id']}"),
         cls="user-card"
     )
 
@@ -381,31 +360,19 @@ color = div.get_style("color")  # "blue"
 
 ## Available Elements
 
-**PascalCase imports** (`from nitro_ui import *`):
+Import all elements with `from nitro_ui import *`:
 
 | Module                 | Elements                                                                |
 |------------------------|-------------------------------------------------------------------------|
 | `nitro_ui.tags.html`   | HTML, Head, Body, Title, Meta, Script, Style, HtmlLink, IFrame          |
 | `nitro_ui.tags.layout` | Div, Section, Article, Header, Nav, Footer, Main, Aside, Dialog         |
-| `nitro_ui.tags.text`   | H1-H6, Paragraph, Span, Strong, Em, Link, Code, Pre, Blockquote         |
+| `nitro_ui.tags.text`   | H1-H6, Paragraph, Span, Strong, Em, Href, Code, Pre, Blockquote         |
 | `nitro_ui.tags.form`   | Form, Input, Button, Select, Option, Textarea, Label, Fieldset          |
 | `nitro_ui.tags.lists`  | UnorderedList, OrderedList, ListItem, DescriptionList                   |
 | `nitro_ui.tags.media`  | Image, Video, Audio, Figure, Canvas, Picture, Source                    |
 | `nitro_ui.tags.table`  | Table, TableRow, TableHeader, TableBody, TableHeaderCell, TableDataCell |
 
-**Lowercase HTML-like imports** (`from nitro_ui.html import *`):
-
-| Category | Aliases                                                              |
-|----------|----------------------------------------------------------------------|
-| Document | `html`, `head`, `body`, `title`, `meta`, `script`, `style`, `link`   |
-| Layout   | `div`, `section`, `article`, `header`, `nav`, `footer`, `main`, `hr` |
-| Text     | `h1`-`h6`, `p`, `span`, `strong`, `em`, `a`, `code`, `pre`, `b`, `i` |
-| Form     | `form`, `input_`, `button`, `select`, `option`, `textarea`, `label`  |
-| Lists    | `ul`, `ol`, `li`, `dl`, `dt`, `dd`                                   |
-| Media    | `img`, `video`, `audio`, `figure`, `canvas`, `picture`, `source`     |
-| Table    | `table`, `tr`, `td`, `th`, `thead`, `tbody`, `tfoot`                 |
-
-*Note: `input_`, `del_`, `object_`, `map_` use trailing underscore to avoid Python keyword/builtin conflicts.*
+Lowercase HTML-like aliases (`div`, `p`, `a`, etc.) are also available via `from nitro_ui.html import *`.
 
 ## Element API
 
@@ -450,13 +417,14 @@ pytest
 black src/ tests/
 ```
 
+## Ecosystem
+
+- **[nitro-cli](https://github.com/nitrosh/nitro-cli)** - Static site generator
+- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
+- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Data loading with dot notation access
+- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
+- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
+
 ## License
 
-BSD 3-Clause License. See [LICENSE](LICENSE) for details.
-
-## Links
-
-- [Author](https://github.com/sn)
-- [PyPI](https://pypi.org/project/nitro-ui/)
-- [GitHub](https://github.com/sn/nitro-ui)
-- [Skill Guide](SKILL.md)
+This project is licensed under the BSD 3-Clause License. See the [LICENSE](LICENSE) file for details.
