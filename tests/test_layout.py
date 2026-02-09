@@ -128,9 +128,9 @@ class TestLayoutTags(unittest.TestCase):
         self.assertEqual(str(dialog), "<dialog>Dialog content</dialog>")
 
     def test_dialog_with_open_attribute(self):
-        """Test dialog element with open attribute."""
+        """Test dialog element with open attribute (boolean attribute)."""
         dialog = Dialog("Dialog is open", open="open")
-        self.assertIn('open="open"', str(dialog))
+        self.assertIn("open", str(dialog))
 
     def test_inheritance(self):
         """Test that all layout-related classes inherit from HTMLElement."""

@@ -1,4 +1,4 @@
-from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement, register_tag
 
 
 # Factory function to create simple tag classes
@@ -26,4 +26,8 @@ def simple_tag_class(tag, self_closing=False, extra_init=None):
     class_name = tag.capitalize() if tag.islower() else tag
     _Tag.__name__ = class_name
     _Tag.__qualname__ = class_name
+
+    # Register tag for from_dict() subclass reconstruction
+    register_tag(tag, _Tag)
+
     return _Tag

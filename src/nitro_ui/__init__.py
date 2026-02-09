@@ -19,6 +19,7 @@ from .tags.form import (
     Output,
     Progress,
     Meter,
+    Datalist,
 )
 from .tags.html import (
     HTML,
@@ -32,6 +33,9 @@ from .tags.html import (
     IFrame,
     Base,
     Noscript,
+    Template,
+    Svg,
+    Math,
 )
 from .tags.layout import (
     Div,
@@ -46,12 +50,15 @@ from .tags.layout import (
     Details,
     Summary,
     Dialog,
+    Address,
+    Hgroup,
+    Search,
+    Menu,
 )
 from .tags.lists import (
     UnorderedList,
     OrderedList,
     ListItem,
-    Datalist,
     DescriptionDetails,
     DescriptionList,
     DescriptionTerm,
@@ -101,6 +108,7 @@ from .tags.text import (
     Span,
     Strong,
     Abbr,
+    Anchor,
     Href,
     Small,
     Superscript,
@@ -119,6 +127,12 @@ from .tags.text import (
     Dfn,
     Br,
     Wbr,
+    Bdi,
+    Bdo,
+    Ruby,
+    Rt,
+    Rp,
+    Data,
 )
 from .styles import (
     CSSStyle,
@@ -152,6 +166,7 @@ __all__ = [
     "Output",
     "Progress",
     "Meter",
+    "Datalist",
     # html
     "HTML",
     "Head",
@@ -164,6 +179,9 @@ __all__ = [
     "IFrame",
     "Base",
     "Noscript",
+    "Template",
+    "Svg",
+    "Math",
     # layout
     "Div",
     "Section",
@@ -177,11 +195,14 @@ __all__ = [
     "Details",
     "Summary",
     "Dialog",
+    "Address",
+    "Hgroup",
+    "Search",
+    "Menu",
     # lists
     "UnorderedList",
     "OrderedList",
     "ListItem",
-    "Datalist",
     "DescriptionDetails",
     "DescriptionList",
     "DescriptionTerm",
@@ -228,6 +249,7 @@ __all__ = [
     "Span",
     "Strong",
     "Abbr",
+    "Anchor",
     "Href",
     "Small",
     "Superscript",
@@ -246,4 +268,10 @@ __all__ = [
     "Dfn",
     "Br",
     "Wbr",
+    "Bdi",
+    "Bdo",
+    "Ruby",
+    "Rt",
+    "Rp",
+    "Data",
 ]

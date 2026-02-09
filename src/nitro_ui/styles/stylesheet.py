@@ -4,6 +4,7 @@ import re
 from typing import Dict, Optional, List, TYPE_CHECKING
 
 from .style import CSSStyle
+from nitro_ui.core.element import _validate_css_value
 
 if TYPE_CHECKING:
     from .theme import Theme
@@ -12,9 +13,6 @@ if TYPE_CHECKING:
 # Valid CSS class name pattern: must start with letter, underscore, or hyphen
 # followed by letters, digits, underscores, or hyphens
 _VALID_CLASS_NAME_PATTERN = re.compile(r"^-?[_a-zA-Z][_a-zA-Z0-9-]*$")
-
-# Characters that could be used for CSS injection attacks
-_DANGEROUS_CSS_CHARS = re.compile(r"[{}<>]|/\*|\*/|\\[0-9a-fA-F]")
 
 
 def _validate_class_name(name: str) -> bool:
@@ -37,6 +35,8 @@ def _validate_class_name(name: str) -> bool:
 def _sanitize_css_value(value: str) -> str:
     """Sanitize a CSS value to prevent injection attacks.
 
+    Uses the shared validation from core.element for consistency.
+
     Args:
         value: The CSS value to sanitize
 
@@ -44,29 +44,16 @@ def _sanitize_css_value(value: str) -> str:
         Sanitized CSS value
 
     Raises:
-        ValueError: If the value contains dangerous characters that cannot be sanitized
+        ValueError: If the value contains dangerous characters
     """
     if not isinstance(value, str):
         value = str(value)
 
-    # Check for dangerous patterns
-    if _DANGEROUS_CSS_CHARS.search(value):
+    if not _validate_css_value(value):
         raise ValueError(
-            f"CSS value contains potentially dangerous characters: {value!r}"
-        )
-
-    # Check for url() with javascript: or data: protocols (potential XSS)
-    lower_value = value.lower()
-    if "url(" in lower_value:
-        if "javascript:" in lower_value or "data:" in lower_value:
-            raise ValueError(
-                f"CSS value contains potentially dangerous URL protocol: {value!r}"
-            )
-
-    # Check for expression() (IE CSS expressions - XSS vector)
-    if "expression(" in lower_value:
-        raise ValueError(
-            f"CSS value contains potentially dangerous expression(): {value!r}"
+            f"CSS value contains potentially dangerous content: {value!r}. "
+            "Values cannot contain javascript:, expression(), or other "
+            "injection patterns."
         )
 
     return value
@@ -389,9 +376,13 @@ class StyleSheet:
         if "breakpoints" in data:
             stylesheet._breakpoint_values = data["breakpoints"].copy()
 
-        # Restore classes
+        # Restore classes (validate class names on deserialization)
         if "classes" in data:
             for name, style_data in data["classes"].items():
+                if not _validate_class_name(name):
+                    raise ValueError(
+                        f"Invalid CSS class name in serialized data: {name!r}"
+                    )
                 style = CSSStyle.from_dict(style_data)
                 stylesheet._classes[name] = style
 

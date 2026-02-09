@@ -1,4 +1,4 @@
-from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement, register_tag
 from nitro_ui.tags.tag_factory import simple_tag_class
 
 Textarea = simple_tag_class("textarea")
@@ -12,6 +12,7 @@ Optgroup = simple_tag_class("optgroup")
 Output = simple_tag_class("output")
 Progress = simple_tag_class("progress")
 Meter = simple_tag_class("meter")
+Datalist = simple_tag_class("datalist")
 
 
 class Select(BaseSelect):
@@ -26,6 +27,9 @@ class Select(BaseSelect):
         return opt
 
 
+register_tag("select", Select)
+
+
 def label_extra_init(self, kwargs):
     if "for_element" in kwargs:
         kwargs["for"] = kwargs.pop("for_element")
@@ -38,27 +42,20 @@ class Form(HTMLElement):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **{**kwargs, "tag": "form"})
 
-    @staticmethod
-    def with_fields(*items, **kwargs):
-        form = Form(**kwargs)
-        valid_types = (
-            Input,
-            Textarea,
-            Select,
-            Option,
-            Button,
-            Fieldset,
-            Legend,
-            Label,
-            Optgroup,
-            Output,
-            Progress,
-            Meter,
-        )
+    @classmethod
+    def with_fields(cls, *items, **kwargs):
+        form = cls(**kwargs)
         for item in items:
-            if not isinstance(item, valid_types):
+            if isinstance(item, HTMLElement):
+                form.append(item)
+            elif isinstance(item, str):
+                form.append(item)
+            else:
                 raise TypeError(
-                    f"Invalid form field: {item!r} (type {type(item).__name__})"
+                    f"Invalid form field: {item!r} (type {type(item).__name__}). "
+                    "Expected an HTMLElement or string."
                 )
-            form.append(item)
         return form
+
+
+register_tag("form", Form)

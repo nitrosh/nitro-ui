@@ -11,8 +11,8 @@ page = HTML(
     Head(Title("Dashboard")),
     Body(
         Nav(
-            Href("Home", href="/"),
-            Href("Settings", href="/settings", cls="active")
+            Anchor("Home", href="/"),
+            Anchor("Settings", href="/settings", cls="active")
         ),
         Main(
             H1("Welcome back!"),
@@ -34,6 +34,8 @@ print(page.render(pretty=True))
 - **Zero dependencies**: Just Python 3.8+, nothing else
 - **Framework agnostic**: Works with FastAPI, Django, Flask, or standalone
 - **Serializable**: Convert to/from JSON for drag-and-drop builders
+- **Secure by default**: Automatic HTML escaping, CSS injection prevention, tag/attribute validation
+- **SVG-aware**: Correct camelCase attribute handling for SVG elements
 - **LLM-friendly**: Perfect for AI-generated interfaces
 
 ## Installation
@@ -62,7 +64,7 @@ def render_user_card(user):
         Image(src=user["avatar"], alt=user["name"]),
         H3(user["name"]),
         Paragraph(user["bio"]),
-        Href("View Profile", href=f"/users/{user['id']}"),
+        Anchor("View Profile", href=f"/users/{user['id']}"),
         cls="user-card"
     )
 
@@ -362,17 +364,15 @@ color = div.get_style("color")  # "blue"
 
 Import all elements with `from nitro_ui import *`:
 
-| Module                 | Elements                                                                |
-|------------------------|-------------------------------------------------------------------------|
-| `nitro_ui.tags.html`   | HTML, Head, Body, Title, Meta, Script, Style, HtmlLink, IFrame          |
-| `nitro_ui.tags.layout` | Div, Section, Article, Header, Nav, Footer, Main, Aside, Dialog         |
-| `nitro_ui.tags.text`   | H1-H6, Paragraph, Span, Strong, Em, Href, Code, Pre, Blockquote         |
-| `nitro_ui.tags.form`   | Form, Input, Button, Select, Option, Textarea, Label, Fieldset          |
-| `nitro_ui.tags.lists`  | UnorderedList, OrderedList, ListItem, DescriptionList                   |
-| `nitro_ui.tags.media`  | Image, Video, Audio, Figure, Canvas, Picture, Source                    |
-| `nitro_ui.tags.table`  | Table, TableRow, TableHeader, TableBody, TableHeaderCell, TableDataCell |
-
-Lowercase HTML-like aliases (`div`, `p`, `a`, etc.) are also available via `from nitro_ui.html import *`.
+| Module                 | Elements                                                                                       |
+|------------------------|-----------------------------------------------------------------------------------------------|
+| `nitro_ui.tags.html`   | HTML, Head, Body, Title, Meta, Link, Script, Style, Base, Noscript, IFrame, Template, Svg, Math |
+| `nitro_ui.tags.layout` | Div, Section, Article, Header, Nav, Footer, Main, Aside, Details, Summary, Dialog, Address, Hgroup, Search, Menu |
+| `nitro_ui.tags.text`   | H1-H6, Paragraph, Span, Strong, Em, Bold, Italic, Anchor (alias: Href), Code, Pre, Blockquote, Br, Wbr, Bdi, Bdo, Ruby, Rt, Rp, Data, and more |
+| `nitro_ui.tags.form`   | Form, Input, Button, Select, Option, Textarea, Label, Fieldset, Legend, Optgroup, Output, Progress, Meter, Datalist |
+| `nitro_ui.tags.lists`  | UnorderedList, OrderedList, ListItem, DescriptionList, DescriptionTerm, DescriptionDetails     |
+| `nitro_ui.tags.media`  | Image, Video, Audio, Source, Track, Picture, Figure, Figcaption, Canvas, Embed, Object, Param, Map, Area |
+| `nitro_ui.tags.table`  | Table, TableRow, TableHeader, TableBody, TableFooter, TableHeaderCell, TableDataCell, Caption, Col, Colgroup |
 
 ## Element API
 
@@ -386,6 +386,8 @@ Lowercase HTML-like aliases (`div`, `p`, `a`, etc.) are also available via `from
 - `add_attribute(key, value)` / `add_attributes(list)`
 - `get_attribute(key)` / `has_attribute(key)`
 - `remove_attribute(key)`
+- HTML5 boolean attributes (`disabled`, `checked`, `required`, etc.) render correctly: `True` renders as a bare attribute, `False` omits it, `None` omits it
+- SVG camelCase attributes are supported via snake_case kwargs: `view_box` renders as `viewBox`, `preserve_aspect_ratio` as `preserveAspectRatio`, etc.
 
 **Styles**
 - `add_style(prop, value)` / `add_styles(dict)`

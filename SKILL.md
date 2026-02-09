@@ -38,137 +38,149 @@ from nitro_ui import HTMLElement, Fragment, Component, Slot, Partial, from_html
 from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 ```
 
-Lowercase HTML-like aliases (`div`, `p`, `a`, etc.) are also available via `from nitro_ui.html import *`.
-
 ---
 
 ## All Tags
 
 ### Document Structure
-| PascalCase | Lowercase | HTML | Notes |
-|------------|-----------|------|-------|
-| `HTML` | `html` | `<html>` | Includes `<!DOCTYPE html>` |
-| `Head` | `head` | `<head>` | |
-| `Body` | `body` | `<body>` | |
-| `Title` | `title` | `<title>` | |
-| `Meta` | `meta` | `<meta>` | Self-closing |
-| `HtmlLink` | `link` | `<link>` | Self-closing. `HtmlLink` avoids confusion with `Href` |
-| `Script` | `script` | `<script>` | |
-| `Style` | `style` | `<style>` | |
-| `Base` | `base` | `<base>` | Self-closing |
-| `Noscript` | `noscript` | `<noscript>` | |
-| `IFrame` | `iframe` | `<iframe>` | |
+| PascalCase | HTML | Notes |
+|------------|------|-------|
+| `HTML` | `<html>` | Includes `<!DOCTYPE html>`. Default `lang="en"`, `dir="ltr"` (overridable) |
+| `Head` | `<head>` | |
+| `Body` | `<body>` | |
+| `Title` | `<title>` | |
+| `Meta` | `<meta>` | Self-closing |
+| `Link` | `<link>` | Self-closing |
+| `Script` | `<script>` | |
+| `Style` | `<style>` | |
+| `Base` | `<base>` | Self-closing |
+| `Noscript` | `<noscript>` | |
+| `IFrame` | `<iframe>` | |
+| `Template` | `<template>` | |
+| `Svg` | `<svg>` | SVG camelCase attrs supported (see below) |
+| `Math` | `<math>` | |
 
 ### Layout
-| PascalCase | Lowercase | HTML |
-|------------|-----------|------|
-| `Div` | `div` | `<div>` |
-| `Section` | `section` | `<section>` |
-| `Article` | `article` | `<article>` |
-| `Header` | `header` | `<header>` |
-| `Footer` | `footer` | `<footer>` |
-| `Nav` | `nav` | `<nav>` |
-| `Main` | `main` | `<main>` |
-| `Aside` | `aside` | `<aside>` |
-| `HorizontalRule` | `hr` | `<hr>` (self-closing) |
-| `Details` | `details` | `<details>` |
-| `Summary` | `summary` | `<summary>` |
-| `Dialog` | `dialog` | `<dialog>` |
+| PascalCase | HTML |
+|------------|------|
+| `Div` | `<div>` |
+| `Section` | `<section>` |
+| `Article` | `<article>` |
+| `Header` | `<header>` |
+| `Footer` | `<footer>` |
+| `Nav` | `<nav>` |
+| `Main` | `<main>` |
+| `Aside` | `<aside>` |
+| `HorizontalRule` | `<hr>` (self-closing) |
+| `Details` | `<details>` |
+| `Summary` | `<summary>` |
+| `Dialog` | `<dialog>` |
+| `Address` | `<address>` |
+| `Hgroup` | `<hgroup>` |
+| `Search` | `<search>` |
+| `Menu` | `<menu>` |
 
 ### Text
-| PascalCase | Lowercase | HTML |
-|------------|-----------|------|
-| `H1`-`H6` | `h1`-`h6` | `<h1>`-`<h6>` |
-| `Paragraph` | `p` | `<p>` |
-| `Span` | `span` | `<span>` |
-| `Strong` | `strong` | `<strong>` |
-| `Em` | `em` | `<em>` |
-| `Bold` | `b` | `<b>` |
-| `Italic` | `i` | `<i>` |
-| `Underline` | `u` | `<u>` |
-| `Strikethrough` | `s` | `<s>` |
-| `Small` | `small` | `<small>` |
-| `Mark` | `mark` | `<mark>` |
-| `Del` | `del_` | `<del>` |
-| `Ins` | `ins` | `<ins>` |
-| `Subscript` | `sub` | `<sub>` |
-| `Superscript` | `sup` | `<sup>` |
-| `Code` | `code` | `<code>` |
-| `Pre` | `pre` | `<pre>` |
-| `Kbd` | `kbd` | `<kbd>` |
-| `Samp` | `samp` | `<samp>` |
-| `Var` | `var` | `<var>` |
-| `Blockquote` | `blockquote` | `<blockquote>` |
-| `Quote` | `q` | `<q>` |
-| `Cite` | `cite` | `<cite>` |
-| `Abbr` | `abbr` | `<abbr>` |
-| `Dfn` | `dfn` | `<dfn>` |
-| `Time` | `time` | `<time>` |
-| `Href` | `a` | `<a>` |
-| `Br` | `br` | `<br>` (self-closing) |
-| `Wbr` | `wbr` | `<wbr>` (self-closing) |
+| PascalCase | HTML | Notes |
+|------------|------|-------|
+| `H1`-`H6` | `<h1>`-`<h6>` | |
+| `Paragraph` | `<p>` | |
+| `Span` | `<span>` | |
+| `Strong` | `<strong>` | |
+| `Em` | `<em>` | |
+| `Bold` | `<b>` | |
+| `Italic` | `<i>` | |
+| `Underline` | `<u>` | |
+| `Strikethrough` | `<s>` | |
+| `Small` | `<small>` | |
+| `Mark` | `<mark>` | |
+| `Del` | `<del>` | |
+| `Ins` | `<ins>` | |
+| `Subscript` | `<sub>` | |
+| `Superscript` | `<sup>` | |
+| `Code` | `<code>` | |
+| `Pre` | `<pre>` | |
+| `Kbd` | `<kbd>` | |
+| `Samp` | `<samp>` | |
+| `Var` | `<var>` | |
+| `Blockquote` | `<blockquote>` | |
+| `Quote` | `<q>` | |
+| `Cite` | `<cite>` | |
+| `Abbr` | `<abbr>` | |
+| `Dfn` | `<dfn>` | |
+| `Time` | `<time>` | |
+| `Anchor` | `<a>` | Preferred name for anchor links |
+| `Href` | `<a>` | Backward-compatible alias for `Anchor` |
+| `Br` | `<br>` | Self-closing |
+| `Wbr` | `<wbr>` | Self-closing |
+| `Bdi` | `<bdi>` | Bidirectional isolation |
+| `Bdo` | `<bdo>` | Bidirectional override |
+| `Ruby` | `<ruby>` | Ruby annotation |
+| `Rt` | `<rt>` | Ruby text |
+| `Rp` | `<rp>` | Ruby fallback parenthesis |
+| `Data` | `<data>` | Machine-readable value |
 
 ### Lists
-| PascalCase | Lowercase | HTML |
-|------------|-----------|------|
-| `UnorderedList` | `ul` | `<ul>` |
-| `OrderedList` | `ol` | `<ol>` |
-| `ListItem` | `li` | `<li>` |
-| `Datalist` | `datalist` | `<datalist>` |
-| `DescriptionList` | `dl` | `<dl>` |
-| `DescriptionTerm` | `dt` | `<dt>` |
-| `DescriptionDetails` | `dd` | `<dd>` |
+| PascalCase | HTML |
+|------------|------|
+| `UnorderedList` | `<ul>` |
+| `OrderedList` | `<ol>` |
+| `ListItem` | `<li>` |
+| `DescriptionList` | `<dl>` |
+| `DescriptionTerm` | `<dt>` |
+| `DescriptionDetails` | `<dd>` |
 
 ### Forms
-| PascalCase | Lowercase | HTML |
-|------------|-----------|------|
-| `Form` | `form` | `<form>` |
-| `Input` | `input_` | `<input>` (self-closing) |
-| `Button` | `button` | `<button>` |
-| `Textarea` | `textarea` | `<textarea>` |
-| `Select` | `select` | `<select>` |
-| `Option` | `option` | `<option>` |
-| `Optgroup` | `optgroup` | `<optgroup>` |
-| `Label` | `label` | `<label>` |
-| `Fieldset` | `fieldset` | `<fieldset>` |
-| `Legend` | `legend` | `<legend>` |
-| `Output` | `output` | `<output>` |
-| `Progress` | `progress` | `<progress>` |
-| `Meter` | `meter` | `<meter>` |
+| PascalCase | HTML | Notes |
+|------------|------|-------|
+| `Form` | `<form>` | Also has `Form.with_fields()` classmethod |
+| `Input` | `<input>` | Self-closing |
+| `Button` | `<button>` | |
+| `Textarea` | `<textarea>` | |
+| `Select` | `<select>` | Also has `Select.with_items()` classmethod |
+| `Option` | `<option>` | |
+| `Optgroup` | `<optgroup>` | |
+| `Label` | `<label>` | |
+| `Fieldset` | `<fieldset>` | |
+| `Legend` | `<legend>` | |
+| `Output` | `<output>` | |
+| `Progress` | `<progress>` | |
+| `Meter` | `<meter>` | |
+| `Datalist` | `<datalist>` | |
 
 ### Tables
-| PascalCase | Lowercase | HTML |
-|------------|-----------|------|
-| `Table` | `table` | `<table>` |
-| `TableHeader` | `thead` | `<thead>` |
-| `TableBody` | `tbody` | `<tbody>` |
-| `TableFooter` | `tfoot` | `<tfoot>` |
-| `TableRow` | `tr` | `<tr>` |
-| `TableHeaderCell` | `th` | `<th>` |
-| `TableDataCell` | `td` | `<td>` |
-| `Caption` | `caption` | `<caption>` |
-| `Colgroup` | `colgroup` | `<colgroup>` |
-| `Col` | `col` | `<col>` (self-closing) |
+| PascalCase | HTML |
+|------------|------|
+| `Table` | `<table>` |
+| `TableHeader` | `<thead>` |
+| `TableBody` | `<tbody>` |
+| `TableFooter` | `<tfoot>` |
+| `TableRow` | `<tr>` |
+| `TableHeaderCell` | `<th>` |
+| `TableDataCell` | `<td>` |
+| `Caption` | `<caption>` |
+| `Colgroup` | `<colgroup>` |
+| `Col` | `<col>` (self-closing) |
 
 `Table.from_json(path)` and `Table.from_csv(path)` create tables from files (first row = headers in `<thead>`, rest in `<tbody>`).
 
 ### Media
-| PascalCase | Lowercase | HTML |
-|------------|-----------|------|
-| `Image` | `img` | `<img>` (self-closing) |
-| `Video` | `video` | `<video>` |
-| `Audio` | `audio` | `<audio>` |
-| `Source` | `source` | `<source>` (self-closing) |
-| `Track` | `track` | `<track>` (self-closing) |
-| `Picture` | `picture` | `<picture>` |
-| `Figure` | `figure` | `<figure>` |
-| `Figcaption` | `figcaption` | `<figcaption>` |
-| `Canvas` | `canvas` | `<canvas>` |
-| `Embed` | `embed` | `<embed>` (self-closing) |
-| `Object` | `object_` | `<object>` |
-| `Param` | `param` | `<param>` (self-closing) |
-| `Map` | `map_` | `<map>` |
-| `Area` | `area` | `<area>` (self-closing) |
+| PascalCase | HTML |
+|------------|------|
+| `Image` | `<img>` (self-closing) |
+| `Video` | `<video>` |
+| `Audio` | `<audio>` |
+| `Source` | `<source>` (self-closing) |
+| `Track` | `<track>` (self-closing) |
+| `Picture` | `<picture>` |
+| `Figure` | `<figure>` |
+| `Figcaption` | `<figcaption>` |
+| `Canvas` | `<canvas>` |
+| `Embed` | `<embed>` (self-closing) |
+| `Object` | `<object>` |
+| `Param` | `<param>` (self-closing) |
+| `Map` | `<map>` |
+| `Area` | `<area>` (self-closing) |
 
 ---
 
@@ -188,6 +200,12 @@ HTMLElement(
 - `class_` → also maps to `class_name`
 - `for_element` or `for_` → renders as `for`
 - `data_*` → `data-*` (other underscores become hyphens)
+- SVG camelCase attrs via snake_case: `view_box` → `viewBox`, `preserve_aspect_ratio` → `preserveAspectRatio`, etc. (52 SVG attributes supported)
+
+**Boolean attributes** (`disabled`, `checked`, `required`, `hidden`, `readonly`, `autofocus`, `autoplay`, `controls`, `loop`, `muted`, `multiple`, `open`, `selected`, `defer`, `async`, `novalidate`, `formnovalidate`, `reversed`, `allowfullscreen`, `inert`, `playsinline`, `nomodule`, `default`, `ismap`, `itemscope`):
+- `True` → bare attribute (e.g. `<input disabled>`)
+- `False` → attribute omitted entirely
+- `None` → attribute omitted entirely
 
 ```python
 div = Div(
@@ -198,6 +216,14 @@ div = Div(
     data_value="123"
 )
 # <div id="main" class="container" data-value="123"><h1>Title</h1>Some text</div>
+
+# Boolean attributes
+Input(type="checkbox", checked=True, disabled=False)
+# <input type="checkbox" checked />
+
+# SVG camelCase attributes
+HTMLElement(tag="svg", view_box="0 0 100 100", preserve_aspect_ratio="xMidYMid")
+# <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid"></svg>
 ```
 
 ### Properties
@@ -266,15 +292,17 @@ CSS values are validated against injection patterns (`javascript:`, `expression(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `to_dict()` | `dict` | `{tag, self_closing, attributes, text, children}` |
+| `to_dict(max_depth=1000)` | `dict` | `{tag, self_closing, attributes, text, children}` |
 | `to_json(indent=None)` | `str` | JSON string |
-| `HTMLElement.from_dict(data)` | `HTMLElement` | Reconstruct from dict |
+| `HTMLElement.from_dict(data, max_depth=1000)` | `HTMLElement` | Reconstruct from dict. Validates input types. Restores subclass types via tag registry. |
 | `HTMLElement.from_json(json_str)` | `HTMLElement` | Reconstruct from JSON |
-| `from_html(html_str, fragment=False)` | `HTMLElement\|List\|None` | Parse HTML string |
+| `from_html(html_str, fragment=False)` | `HTMLElement\|List\|None` | Parse HTML string. Preserves SVG camelCase attrs. |
 
 `from_html` is also available as a standalone function: `from nitro_ui import from_html`
 
 When `fragment=True`, returns `List[HTMLElement]`. When `False`, returns single element or `None`.
+
+`from_dict()` reconstructs `Fragment` instances correctly and uses a tag registry to preserve subclass types where possible.
 
 ### Event Callbacks (Override in Subclasses)
 
@@ -600,13 +628,13 @@ html = page.render(pretty=True)
 
 ### Navigation
 ```python
-from nitro_ui import Nav, UnorderedList, ListItem, Href
+from nitro_ui import Nav, UnorderedList, ListItem, Anchor
 
 navbar = Nav(
     UnorderedList(
-        ListItem(Href("Home", href="/")),
-        ListItem(Href("About", href="/about")),
-        ListItem(Href("Contact", href="/contact")),
+        ListItem(Anchor("Home", href="/")),
+        ListItem(Anchor("About", href="/about")),
+        ListItem(Anchor("Contact", href="/contact")),
     ),
     cls="navbar"
 )
@@ -689,6 +717,28 @@ class Card(HTMLElement):
         )
 
 card = Card("My Card", "Card content here", id="card-1")
+```
+
+### SVG Elements
+```python
+from nitro_ui import Svg, HTMLElement
+
+# Using the Svg tag class with snake_case kwargs
+icon = Svg(
+    HTMLElement(
+        HTMLElement(tag="circle", cx="12", cy="12", r="10"),
+        tag="g",
+    ),
+    view_box="0 0 24 24",
+    preserve_aspect_ratio="xMidYMid meet",
+    cls="icon"
+)
+
+# Parsing SVG HTML preserves camelCase attributes
+from nitro_ui import from_html
+svg = from_html('<svg viewBox="0 0 100 100"><circle r="50"/></svg>')
+print(svg.render())
+# <svg viewBox="0 0 100 100"><circle r="50" /></svg>
 ```
 
 ### Parsing and Modifying HTML
@@ -975,21 +1025,31 @@ Form(hx_ext="json-enc", hx_post="/api/submit")
 ## Security
 
 - **Automatic HTML escaping**: All text content and attribute values are escaped
-- **CSS value validation**: `add_style`/`add_styles` reject `javascript:`, `expression()`, `url(data:)`, etc. (raises `ValueError`)
+- **CSS value validation**: `add_style`/`add_styles`/`CSSStyle.to_inline()` reject `javascript:`, `expression()`, `url(data:)`, CSS hex escapes, etc. (raises `ValueError`). Uses a single shared validation implementation.
 - **CSS class name validation**: StyleSheet rejects class names containing injection patterns
+- **Tag name validation**: Tag names must match `^[a-zA-Z][a-zA-Z0-9-]*$`. Invalid names raise `ValueError`.
+- **Attribute key validation**: Invalid attribute keys are skipped with a warning during rendering.
+- **Boolean attribute safety**: `disabled=False` correctly omits the attribute (browsers treat any present attribute as truthy).
+- **None attribute safety**: Attributes set to `None` are omitted from output (not rendered as literal `"None"`).
 - **No raw HTML injection**: Cannot inject unescaped HTML (use `Partial` for trusted raw HTML)
-- **Recursion protection**: `render()`, `filter()`, `find_by_attribute()` have `max_depth` parameter (default 1000) to prevent stack overflow from circular references
+- **Recursion protection**: `render()`, `filter()`, `find_by_attribute()`, `to_dict()`, `from_dict()` all have `max_depth` parameter (default 1000) to prevent stack overflow from circular references
+- **Serialization validation**: `from_dict()` validates all field types. `StyleSheet.from_dict()` validates class names.
 - **Child type validation**: Only `HTMLElement` and `str` accepted as children. `None` silently ignored, other types raise `ValueError`.
+- **Self-closing element warnings**: Adding children or text to self-closing elements (e.g. `<img>`, `<input>`) emits a `UserWarning`.
 
 ---
 
 ## Gotchas
 
 - **Package name mismatch**: PyPI is `nitro-ui`, import is `nitro_ui`
-- **HtmlLink vs Href**: `Href` is for `<a>` links. `HtmlLink` is for `<link>` tags.
+- **Anchor vs Href**: `Anchor` is the preferred name for `<a>` tags. `Href` is a backward-compatible alias. Both work identically.
+- **Link is for `<link>` tags**: `Link` renders `<link>` (stylesheet/meta). Use `Anchor` (or `Href`) for `<a>` links.
+- **`children` property returns a copy**: Mutating the returned list does not affect the element. Use `append()`/`prepend()` to modify.
 - **`get_attributes()` returns a copy**: Mutating the returned dict does not affect the element. Use `add_attribute()` to modify.
 - **`replace_child()` and `generate_id()` return `None`**: Not chainable, unlike other methods.
 - **`from_dict()` expects normalized keys**: Designed for round-tripping with `to_dict()`. Attribute keys should already be in their final form (e.g. `data-value`, not `data_value`).
+- **SVG attributes require snake_case kwargs**: Use `view_box` not `viewBox` when constructing via kwargs. The camelCase form is used for storage and rendering. `get_attribute("viewBox")` to access.
+- **Boolean attributes**: `disabled=True` renders as bare `disabled`, `disabled=False` omits it entirely. `disabled="False"` still renders (as a string value).
 
 ---
 
@@ -1000,6 +1060,7 @@ When generating NitroUI code:
 - [ ] Use PascalCase imports: `from nitro_ui import Div, H1, Paragraph`
 - [ ] Use `cls` for CSS classes (e.g., `Div(cls="container")`)
 - [ ] Use `for_element` not `for` (Python keyword)
+- [ ] Use `Anchor` (or `Href`) for `<a>` tags, `Link` for `<link>` tags
 - [ ] Children go as positional args, attributes as keyword args
 - [ ] Call `.render()` to get HTML string
 - [ ] Use `pretty=True` for readable output during development
@@ -1008,3 +1069,5 @@ When generating NitroUI code:
 - [ ] Use `Partial` for raw HTML (analytics, embeds) - bypasses escaping
 - [ ] Use `Component` + `Slot` for reusable components with declarative templates
 - [ ] Use `Field.xyz()` for form fields with HTML5 validation attributes
+- [ ] Boolean attrs: pass `True`/`False`, not strings, for `disabled`, `checked`, `required`, etc.
+- [ ] SVG attrs: use snake_case kwargs (`view_box`, `preserve_aspect_ratio`) - auto-converted to camelCase

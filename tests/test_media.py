@@ -33,7 +33,7 @@ class TestMediaTags(unittest.TestCase):
         video = Video(src="video.mp4", controls="controls")
         self.assertEqual(video.tag, "video")
         self.assertEqual(
-            str(video), '<video src="video.mp4" controls="controls"></video>'
+            str(video), '<video src="video.mp4" controls></video>'
         )
 
     def test_audio(self):
@@ -41,7 +41,7 @@ class TestMediaTags(unittest.TestCase):
         audio = Audio(src="audio.mp3", controls="controls")
         self.assertEqual(audio.tag, "audio")
         self.assertEqual(
-            str(audio), '<audio src="audio.mp3" controls="controls"></audio>'
+            str(audio), '<audio src="audio.mp3" controls></audio>'
         )
 
     def test_source(self):

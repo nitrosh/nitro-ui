@@ -1,4 +1,4 @@
-from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement, register_tag
 from nitro_ui.tags.tag_factory import simple_tag_class
 
 
@@ -7,13 +7,17 @@ class HTML(HTMLElement):
         super().__init__(
             *args,
             **{
-                **kwargs | {"lang": "en", "dir": "ltr"},
+                "lang": "en",
+                "dir": "ltr",
+                **kwargs,
                 "tag": "html",
                 "self_closing": False,
             },
         )
         self._prefix = "<!DOCTYPE html>"
 
+
+register_tag("html", HTML)
 
 Head = simple_tag_class("head")
 Body = simple_tag_class("body")
@@ -25,3 +29,6 @@ Script = simple_tag_class("script")
 Style = simple_tag_class("style")
 Noscript = simple_tag_class("noscript")
 IFrame = simple_tag_class("iframe")
+Template = simple_tag_class("template")
+Svg = simple_tag_class("svg")
+Math = simple_tag_class("math")

@@ -4,13 +4,17 @@ import warnings
 from html.parser import HTMLParser
 from typing import List, Optional, Union
 
-from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement, _SVG_CAMEL_ATTRS
 
 
 class HTMLParseWarning(UserWarning):
     """Warning raised when parsing potentially problematic HTML."""
 
     pass
+
+
+# Tags where whitespace is significant and should be preserved
+_PREFORMATTED_TAGS = frozenset({"pre", "code", "textarea", "script", "style"})
 
 
 class NitroUIHTMLParser(HTMLParser):
@@ -48,7 +52,11 @@ class NitroUIHTMLParser(HTMLParser):
         seen_normalized = {}  # Track normalized attribute names to detect collisions
 
         for key, value in attrs:
-            if key == "class":
+            # Restore SVG camelCase attrs that HTMLParser lowercased
+            # (e.g. "viewbox" -> "viewBox")
+            if key in _SVG_CAMEL_ATTRS:
+                normalized_key = _SVG_CAMEL_ATTRS[key]
+            elif key == "class":
                 normalized_key = "class_name"
             else:
                 normalized_key = key.replace("-", "_")
@@ -66,7 +74,11 @@ class NitroUIHTMLParser(HTMLParser):
             else:
                 seen_normalized[normalized_key] = key
 
-            attributes[normalized_key] = value if value is not None else ""
+            # Store boolean attributes as True instead of empty string
+            if value is None:
+                attributes[normalized_key] = True
+            else:
+                attributes[normalized_key] = value
 
         is_self_closing = tag in self.VOID_ELEMENTS
 
@@ -120,28 +132,63 @@ class NitroUIHTMLParser(HTMLParser):
             )
 
     def handle_data(self, data: str):
-        """Handle text content between tags."""
-        text = data.strip()
-        if text and self.current is not None:
-            self.text_buffer.append(text)
+        """Handle text content between tags.
+
+        Preserves whitespace for preformatted elements (pre, code, textarea, etc.).
+        Strips whitespace for other elements.
+        """
+        # Determine if we're inside a preformatted element
+        in_preformatted = False
+        if self.current is not None:
+            for el in self.stack:
+                if el.tag in _PREFORMATTED_TAGS:
+                    in_preformatted = True
+                    break
+
+        if in_preformatted:
+            text = data  # Preserve whitespace as-is
+        else:
+            text = data.strip()
+
+        if text:
+            if self.current is not None:
+                self.text_buffer.append(text)
+            else:
+                # Text outside of any element - wrap in a root-level text node
+                # by storing it temporarily and adding to next root element,
+                # or creating a fragment-like root text element
+                self.text_buffer.append(text)
 
     def _flush_text_buffer(self):
         """Flush accumulated text to the current element."""
-        if self.text_buffer and self.current is not None:
+        if not self.text_buffer:
+            return
+
+        text = "".join(self.text_buffer)
+        self.text_buffer.clear()
+
+        if self.current is not None:
             if self.current.text:
-                self.current.text += "".join(self.text_buffer)
+                self.current.text += text
             else:
-                self.current.text = "".join(self.text_buffer)
-            self.text_buffer.clear()
+                self.current.text = text
+        elif text.strip():
+            # Root-level text: create a span wrapper to preserve it
+            wrapper = HTMLElement(text, tag="span")
+            self.roots.append(wrapper)
 
     def parse_html(self, html_string: str) -> Optional[HTMLElement]:
         """Parse HTML string and return root element."""
         self.feed(html_string)
+        self._flush_text_buffer()  # Flush any remaining text
+        self.close()  # Process any remaining buffered data
         return self.roots[0] if self.roots else None
 
     def parse_fragment(self, html_string: str) -> List[HTMLElement]:
         """Parse HTML fragment and return list of elements."""
         self.feed(html_string)
+        self._flush_text_buffer()  # Flush any remaining text
+        self.close()  # Process any remaining buffered data
         return self.roots
 
 
@@ -171,6 +218,11 @@ def from_html(
         >>> for el in elements:
         ...     print(el.render())
     """
+    if not isinstance(html_string, str):
+        raise TypeError(
+            f"html_string must be a string, got {type(html_string).__name__}"
+        )
+
     parser = NitroUIHTMLParser()
 
     if fragment:

@@ -1,7 +1,7 @@
 import csv
 import json
 
-from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement, register_tag
 from nitro_ui.tags.tag_factory import simple_tag_class
 
 TableFooter = simple_tag_class("tfoot")
@@ -38,7 +38,7 @@ class Table(HTMLElement):
             raise ValueError(f"Encoding error: {encoding} is not suitable for the file")
         return table
 
-    @classmethod
+    @classmethod  # type: ignore[override]
     def from_json(cls, file_path: str, encoding: str = "utf-8") -> "Table":
         table = cls()
         try:
@@ -60,3 +60,6 @@ class Table(HTMLElement):
         except UnicodeDecodeError:
             raise ValueError(f"Encoding error: {encoding} is not suitable for the file")
         return table
+
+
+register_tag("table", Table)

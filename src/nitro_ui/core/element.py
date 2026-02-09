@@ -4,6 +4,7 @@ import json
 import os
 import re
 import uuid
+import warnings
 from typing import Callable, Any, Iterator, Union, List, Tuple
 
 # Default maximum recursion depth for tree traversal operations
@@ -13,9 +14,105 @@ DEFAULT_MAX_DEPTH = 1000
 _DANGEROUS_CSS_PATTERN = re.compile(
     r'javascript:|expression\s*\(|url\s*\(\s*["\']?\s*data:|'
     r'url\s*\(\s*["\']?\s*javascript:|'
-    r"[{}<>]|/\*|\*/",
+    r"[{}<>]|/\*|\*/|\\[0-9a-fA-F]",
     re.IGNORECASE,
 )
+
+# Valid HTML tag name pattern
+_VALID_TAG_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9-]*$")
+
+# Valid HTML attribute name pattern
+_VALID_ATTR_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_:.@-]*$")
+
+# HTML5 boolean attributes that should render as bare attributes
+_BOOLEAN_ATTRIBUTES = frozenset({
+    "allowfullscreen", "async", "autofocus", "autoplay", "checked",
+    "controls", "default", "defer", "disabled", "formnovalidate",
+    "hidden", "inert", "ismap", "itemscope", "loop", "multiple",
+    "muted", "nomodule", "novalidate", "open", "playsinline",
+    "readonly", "required", "reversed", "selected",
+})
+
+# Cache the environment variable check at module load time
+_GENERATE_IDS = bool(os.environ.get("NITRO_UI_GENERATE_IDS"))
+
+# SVG attributes that require camelCase.
+# Maps lowercase -> correct camelCase form (per the SVG spec).
+# Used by the parser to restore casing after html.parser lowercases,
+# and by element rendering to output the correct attribute name.
+_SVG_CAMEL_ATTRS = {
+    "viewbox": "viewBox",
+    "basefrequency": "baseFrequency",
+    "calcmode": "calcMode",
+    "clippathunits": "clipPathUnits",
+    "diffuseconstant": "diffuseConstant",
+    "edgemode": "edgeMode",
+    "filterunits": "filterUnits",
+    "glyphref": "glyphRef",
+    "gradienttransform": "gradientTransform",
+    "gradientunits": "gradientUnits",
+    "kernelmatrix": "kernelMatrix",
+    "kernelunitlength": "kernelUnitLength",
+    "keypoints": "keyPoints",
+    "keysplines": "keySplines",
+    "keytimes": "keyTimes",
+    "lengthadjust": "lengthAdjust",
+    "limitingconeangle": "limitingConeAngle",
+    "markerheight": "markerHeight",
+    "markerunits": "markerUnits",
+    "markerwidth": "markerWidth",
+    "maskcontentunits": "maskContentUnits",
+    "maskunits": "maskUnits",
+    "numoctaves": "numOctaves",
+    "pathlength": "pathLength",
+    "patterncontentunits": "patternContentUnits",
+    "patterntransform": "patternTransform",
+    "patternunits": "patternUnits",
+    "pointsatx": "pointsAtX",
+    "pointsaty": "pointsAtY",
+    "pointsatz": "pointsAtZ",
+    "preserveaspectratio": "preserveAspectRatio",
+    "primitiveunits": "primitiveUnits",
+    "refx": "refX",
+    "refy": "refY",
+    "repeatcount": "repeatCount",
+    "repeatdur": "repeatDur",
+    "requiredextensions": "requiredExtensions",
+    "requiredfeatures": "requiredFeatures",
+    "specularconstant": "specularConstant",
+    "specularexponent": "specularExponent",
+    "spreadmethod": "spreadMethod",
+    "startoffset": "startOffset",
+    "stddeviation": "stdDeviation",
+    "stitchtiles": "stitchTiles",
+    "surfacescale": "surfaceScale",
+    "systemlanguage": "systemLanguage",
+    "tablevalues": "tableValues",
+    "targetx": "targetX",
+    "targety": "targetY",
+    "textlength": "textLength",
+    "xchannelselector": "xChannelSelector",
+    "ychannelselector": "yChannelSelector",
+    "zoomandpan": "zoomAndPan",
+}
+
+# Reverse map: snake_case kwarg -> camelCase SVG attribute name.
+# e.g. "view_box" -> "viewBox", "gradient_units" -> "gradientUnits"
+# Built from _SVG_CAMEL_ATTRS by converting each camelCase name to
+# its snake_case equivalent.
+
+
+def _build_svg_snake_map():
+    """Build snake_case -> camelCase map for SVG attrs."""
+    result = {}
+    for camel in _SVG_CAMEL_ATTRS.values():
+        # Convert camelCase to snake_case: viewBox -> view_box
+        snake = re.sub(r"([a-z])([A-Z])", r"\1_\2", camel).lower()
+        result[snake] = camel
+    return result
+
+
+_SVG_SNAKE_TO_CAMEL = _build_svg_snake_map()
 
 
 def _validate_css_value(value: str) -> bool:
@@ -65,6 +162,14 @@ class HTMLElement:
         if not tag:
             raise ValueError("A valid HTML tag name is required")
 
+        # Validate tag name to prevent injection
+        if not _VALID_TAG_PATTERN.match(tag):
+            raise ValueError(
+                f"Invalid HTML tag name: {tag!r}. "
+                "Tag names must start with a letter and contain only "
+                "letters, digits, and hyphens."
+            )
+
         def normalize_attr_key(k: str) -> str:
             # First, handle keyword mappings (class_ -> class_name, for_ -> for_element)
             if k in KEYWORD_MAPPINGS:
@@ -72,6 +177,9 @@ class HTMLElement:
             # Preserve certain keys with underscores
             if k in PRESERVE_UNDERSCORE:
                 return k
+            # Check SVG camelCase map (view_box -> viewBox)
+            if k in _SVG_SNAKE_TO_CAMEL:
+                return _SVG_SNAKE_TO_CAMEL[k]
             # Convert remaining underscores to hyphens (data_value -> data-value)
             return k.replace("_", "-")
 
@@ -85,7 +193,7 @@ class HTMLElement:
         self._styles_cache: Union[dict, None] = None
         self._prefix: Union[str, None] = None
 
-        if os.environ.get("NITRO_UI_GENERATE_IDS"):
+        if _GENERATE_IDS:
             self.generate_id()
 
         # Batch text children to avoid repeated string concatenation
@@ -96,13 +204,24 @@ class HTMLElement:
             elif isinstance(child, str):
                 text_parts.append(child)
             elif child is not None:
-                # Raise error for invalid types (consistent with prepend/append behavior)
+                # Raise error for invalid types
                 raise ValueError(
-                    f"Invalid child type: {type(child).__name__}. "
-                    "Children must be HTMLElement instances or strings."
+                    f"Invalid child type: {type(child).__name__}."
+                    " Children must be HTMLElement instances"
+                    " or strings."
                 )
         if text_parts:
             self._text = "".join(text_parts)
+
+        # Warn if children/text added to self-closing elements
+        if self._self_closing and (self._children or self._text):
+            warnings.warn(
+                f"Self-closing element <{self._tag} /> cannot "
+                "have children or text. Content will be "
+                "discarded during rendering.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         self.on_load()
 
@@ -260,7 +379,14 @@ class HTMLElement:
         Returns:
             self for method chaining
         """
-        self._attributes[key] = value
+        # Prevent duplicate class attributes from mixed API usage
+        if key == "class" and "class_name" in self._attributes:
+            self._attributes["class_name"] = value
+        elif key == "class_name" and "class" in self._attributes:
+            del self._attributes["class"]
+            self._attributes["class_name"] = value
+        else:
+            self._attributes[key] = value
         if key == "style":
             self._styles_cache = None
         return self
@@ -273,7 +399,7 @@ class HTMLElement:
         """
         has_style = False
         for key, value in attributes:
-            self._attributes[key] = value
+            self.add_attribute(key, value)
             if key == "style":
                 has_style = True
 
@@ -335,8 +461,10 @@ class HTMLElement:
         """
         if not _validate_css_value(str(value)):
             raise ValueError(
-                f"CSS value for '{key}' contains potentially dangerous content: {value!r}. "
-                "Values cannot contain javascript:, expression(), or other injection patterns."
+                f"CSS value for '{key}' contains potentially "
+                f"dangerous content: {value!r}. "
+                "Values cannot contain javascript:, expression(),"
+                " or other injection patterns."
             )
         styles_dict = self._get_styles_dict()
         styles_dict[key] = value
@@ -360,8 +488,10 @@ class HTMLElement:
         for key, value in styles.items():
             if not _validate_css_value(str(value)):
                 raise ValueError(
-                    f"CSS value for '{key}' contains potentially dangerous content: {value!r}. "
-                    "Values cannot contain javascript:, expression(), or other injection patterns."
+                    f"CSS value for '{key}' contains potentially"
+                    f" dangerous content: {value!r}. "
+                    "Values cannot contain javascript:, "
+                    "expression(), or other injection patterns."
                 )
         styles_dict = self._get_styles_dict()
         styles_dict.update(styles)
@@ -400,6 +530,7 @@ class HTMLElement:
     def _parse_styles(style_str: str) -> dict:
         """
         Parses a CSS style string into a dictionary.
+        Handles semicolons inside url() and other functional notation.
 
         Args:
             style_str: CSS style string (e.g., "color: red; font-size: 14px")
@@ -411,11 +542,30 @@ class HTMLElement:
             return {}
 
         styles = {}
-        for style in style_str.split(";"):
-            style = style.strip()
-            if ":" in style:
-                key, value = style.split(":", 1)
-                styles[key.strip()] = value.strip()
+        # Split respecting parentheses (don't split on ; inside parens)
+        depth = 0
+        current = []
+        for char in style_str:
+            if char == "(":
+                depth += 1
+                current.append(char)
+            elif char == ")":
+                depth -= 1
+                current.append(char)
+            elif char == ";" and depth == 0:
+                part = "".join(current).strip()
+                if ":" in part:
+                    key, value = part.split(":", 1)
+                    styles[key.strip()] = value.strip()
+                current = []
+            else:
+                current.append(char)
+        # Handle the last segment
+        part = "".join(current).strip()
+        if ":" in part:
+            key, value = part.split(":", 1)
+            styles[key.strip()] = value.strip()
+
         return styles
 
     @staticmethod
@@ -442,6 +592,10 @@ class HTMLElement:
 
     def replace_child(self, old_index: int, new_child: "HTMLElement") -> None:
         """Replaces a existing child element with a new child element."""
+        if not isinstance(new_child, HTMLElement):
+            raise ValueError(
+                f"new_child must be an HTMLElement, got {type(new_child).__name__}"
+            )
         self._children[old_index] = new_child
 
     def find_by_attribute(
@@ -469,8 +623,10 @@ class HTMLElement:
         ) -> Union["HTMLElement", None]:
             if current_depth > max_depth:
                 raise RecursionError(
-                    f"Maximum recursion depth ({max_depth}) exceeded in find_by_attribute(). "
-                    "Consider increasing max_depth or checking for circular references."
+                    f"Maximum recursion depth ({max_depth}) "
+                    "exceeded in find_by_attribute(). "
+                    "Consider increasing max_depth or "
+                    "checking for circular references."
                 )
             if element.get_attribute(attr_name) == attr_value:
                 return element
@@ -518,7 +674,7 @@ class HTMLElement:
 
     @property
     def children(self) -> List["HTMLElement"]:
-        return self._children
+        return list(self._children)
 
     @children.setter
     def children(self, value: List["HTMLElement"]) -> None:
@@ -560,10 +716,36 @@ class HTMLElement:
         def render_key(k: str) -> str:
             return ATTR_RENDER_MAP.get(k, k)
 
-        attr_str = " ".join(
-            f'{render_key(k)}="{html.escape(str(v), quote=True)}"'
-            for k, v in self._attributes.items()
-        )
+        parts = []
+        for k, v in self._attributes.items():
+            render_k = render_key(k)
+
+            # Validate attribute key to prevent injection
+            if not _VALID_ATTR_PATTERN.match(render_k):
+                warnings.warn(
+                    f"Skipping invalid attribute name: {render_k!r}",
+                    UserWarning,
+                    stacklevel=3,
+                )
+                continue
+
+            # Handle None values - skip the attribute
+            if v is None:
+                continue
+
+            # Handle boolean attributes
+            if render_k in _BOOLEAN_ATTRIBUTES:
+                if v is True or v == "" or v == render_k:
+                    parts.append(render_k)
+                elif v is False:
+                    continue  # Omit the attribute entirely
+                else:
+                    # Non-boolean value on a boolean attribute, render normally
+                    parts.append(f'{render_k}="{html.escape(str(v), quote=True)}"')
+            else:
+                parts.append(f'{render_k}="{html.escape(str(v), quote=True)}"')
+
+        attr_str = " ".join(parts)
         return f" {attr_str}" if attr_str else ""
 
     def render(
@@ -622,6 +804,10 @@ class HTMLElement:
                     result = "".join(parts)
                 else:
                     result = f"{tag_start}></{self._tag}>\n"
+            elif pretty:
+                # Pretty mode but no children - still add newline
+                escaped_text = html.escape(self._text)
+                result = f"{tag_start}>{escaped_text}</{self._tag}>\n"
             else:
                 children_html = "".join(
                     child.render(
@@ -638,16 +824,40 @@ class HTMLElement:
         self.on_after_render()
         return result
 
-    def to_dict(self) -> dict:
+    def to_dict(
+        self,
+        _depth: int = 0,
+        max_depth: int = DEFAULT_MAX_DEPTH,
+    ) -> dict:
+        """Serialize the element to a dictionary.
+
+        Args:
+            _depth: Internal parameter for tracking recursion depth
+            max_depth: Maximum recursion depth (default 1000)
+
+        Returns:
+            Dictionary representation of the element
+
+        Raises:
+            RecursionError: If max_depth is exceeded
+        """
+        if _depth > max_depth:
+            raise RecursionError(
+                f"Maximum recursion depth ({max_depth}) exceeded in to_dict(). "
+                "This usually indicates a circular reference in the element tree."
+            )
         return {
             "tag": self._tag,
             "self_closing": self._self_closing,
             "attributes": self._attributes.copy(),
             "text": self._text,
-            "children": list(map(lambda child: child.to_dict(), self._children)),
+            "children": [
+                child.to_dict(_depth=_depth + 1, max_depth=max_depth)
+                for child in self._children
+            ],
         }
 
-    def to_json(self, indent: int = None) -> str:
+    def to_json(self, indent: Union[int, None] = None) -> str:
         """
         Serializes the element and its children to a JSON string.
 
@@ -660,15 +870,26 @@ class HTMLElement:
         return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "HTMLElement":
+    def from_dict(
+        cls,
+        data: dict,
+        _depth: int = 0,
+        max_depth: int = DEFAULT_MAX_DEPTH,
+    ) -> "HTMLElement":
         """
         Reconstructs an HTMLElement from a dictionary.
 
         Args:
             data: Dictionary containing element data (from to_dict())
+            _depth: Internal parameter for tracking recursion depth
+            max_depth: Maximum recursion depth (default 1000)
 
         Returns:
             Reconstructed HTMLElement instance
+
+        Raises:
+            ValueError: If input data is invalid
+            RecursionError: If max_depth is exceeded
         """
         if not isinstance(data, dict):
             raise ValueError("Input must be a dictionary")
@@ -676,18 +897,69 @@ class HTMLElement:
         if "tag" not in data:
             raise ValueError("Dictionary must contain 'tag' key")
 
-        element = cls(
-            tag=data["tag"],
-            self_closing=data.get("self_closing", False),
-        )
-        element._attributes = dict(data.get("attributes", {}))
+        if _depth > max_depth:
+            raise RecursionError(
+                f"Maximum recursion depth ({max_depth}) exceeded in from_dict(). "
+                "This usually indicates deeply nested or circular data."
+            )
 
-        if "text" in data and data["text"]:
-            element._text = data["text"]
+        # Validate field types
+        tag = data["tag"]
+        if not isinstance(tag, str):
+            raise ValueError(f"'tag' must be a string, got {type(tag).__name__}")
 
-        if "children" in data and data["children"]:
-            for child_data in data["children"]:
-                child = cls.from_dict(child_data)
+        self_closing = data.get("self_closing", False)
+        if not isinstance(self_closing, bool):
+            raise ValueError(
+                f"'self_closing' must be a bool, got {type(self_closing).__name__}"
+            )
+
+        attributes = data.get("attributes", {})
+        if not isinstance(attributes, dict):
+            raise ValueError(
+                f"'attributes' must be a dict, got {type(attributes).__name__}"
+            )
+
+        text = data.get("text", "")
+        if text is not None and not isinstance(text, str):
+            raise ValueError(f"'text' must be a string, got {type(text).__name__}")
+
+        children_data = data.get("children", [])
+        if not isinstance(children_data, list):
+            raise ValueError(
+                f"'children' must be a list, got {type(children_data).__name__}"
+            )
+
+        # Use the _TAG_REGISTRY for subclass reconstruction if available
+        target_cls = _TAG_REGISTRY.get(tag, cls) if cls is HTMLElement else cls
+
+        # Handle Fragment type specially
+        if tag == "fragment":
+            from nitro_ui.core.fragment import Fragment
+            target_cls = Fragment
+
+        # Fragment and other subclasses may set their own tag in __init__,
+        # so only pass tag when using base HTMLElement
+        if target_cls is HTMLElement:
+            element = target_cls(tag=tag, self_closing=self_closing)
+        else:
+            try:
+                element = target_cls()
+            except TypeError:
+                # Fallback for subclasses that require tag
+                element = target_cls(tag=tag, self_closing=self_closing)
+        element._attributes = dict(attributes)
+
+        if text:
+            element._text = text
+
+        if children_data:
+            for child_data in children_data:
+                child = HTMLElement.from_dict(
+                    child_data,
+                    _depth=_depth + 1,
+                    max_depth=max_depth,
+                )
                 element._children.append(child)
 
         return element
@@ -709,3 +981,13 @@ class HTMLElement:
             raise ValueError(f"Invalid JSON string: {e}")
 
         return cls.from_dict(data)
+
+
+# Tag registry for subclass reconstruction in from_dict()
+# Populated by tag_factory and tag modules at import time
+_TAG_REGISTRY: dict = {}
+
+
+def register_tag(tag_name: str, tag_class: type) -> None:
+    """Register a tag class for from_dict() reconstruction."""
+    _TAG_REGISTRY[tag_name] = tag_class

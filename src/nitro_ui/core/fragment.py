@@ -1,6 +1,7 @@
+import html as html_module
 from typing import Union, List, Any
 
-from nitro_ui.core.element import HTMLElement, DEFAULT_MAX_DEPTH
+from nitro_ui.core.element import HTMLElement, DEFAULT_MAX_DEPTH, register_tag
 
 
 class Fragment(HTMLElement):
@@ -64,9 +65,11 @@ class Fragment(HTMLElement):
 
         # Include text content if any
         if self._text:
-            import html
-
-            result = html.escape(self._text) + result
+            result = html_module.escape(self._text) + result
 
         self.on_after_render()
         return result
+
+
+# Register fragment tag for from_dict() reconstruction
+register_tag("fragment", Fragment)

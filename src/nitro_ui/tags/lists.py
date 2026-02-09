@@ -1,8 +1,7 @@
-from nitro_ui.core.element import HTMLElement
+from nitro_ui.core.element import HTMLElement, register_tag
 from nitro_ui.tags.tag_factory import simple_tag_class
 
 ListItem = simple_tag_class("li")
-Datalist = simple_tag_class("datalist")
 DescriptionDetails = simple_tag_class("dd")
 DescriptionList = simple_tag_class("dl")
 DescriptionTerm = simple_tag_class("dt")
@@ -23,6 +22,9 @@ class UnorderedList(HTMLElement):
         return ul
 
 
+register_tag("ul", UnorderedList)
+
+
 class OrderedList(HTMLElement):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **{**kwargs, "tag": "ol"})
@@ -36,3 +38,6 @@ class OrderedList(HTMLElement):
             else:
                 ol.append(ListItem(item))
         return ol
+
+
+register_tag("ol", OrderedList)

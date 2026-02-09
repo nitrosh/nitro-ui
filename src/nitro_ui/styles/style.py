@@ -1,6 +1,9 @@
 """CSS Style class for NitroUI."""
 
+import copy
 from typing import Dict, Any
+
+from nitro_ui.core.element import _validate_css_value
 
 
 class CSSStyle:
@@ -84,6 +87,7 @@ class CSSStyle:
         """
         Merge another CSSStyle object into this one, returning a new CSSStyle.
         The other style's properties will override this one's.
+        Pseudo-selectors and breakpoints are deep-merged at the property level.
 
         Args:
             other: Another CSSStyle object to merge
@@ -93,20 +97,53 @@ class CSSStyle:
         """
         merged = CSSStyle()
         merged._styles = {**self._styles, **other._styles}
-        merged._pseudo = {**self._pseudo, **other._pseudo}
-        merged._breakpoints = {**self._breakpoints, **other._breakpoints}
+
+        # Deep merge pseudo-selectors
+        all_pseudo_keys = set(self._pseudo) | set(other._pseudo)
+        for key in all_pseudo_keys:
+            if key in self._pseudo and key in other._pseudo:
+                # Both have this pseudo - merge their styles
+                merged._pseudo[key] = self._pseudo[key].merge(other._pseudo[key])
+            elif key in other._pseudo:
+                merged._pseudo[key] = copy.deepcopy(other._pseudo[key])
+            else:
+                merged._pseudo[key] = copy.deepcopy(self._pseudo[key])
+
+        # Deep merge breakpoints
+        all_bp_keys = set(self._breakpoints) | set(other._breakpoints)
+        for key in all_bp_keys:
+            if key in self._breakpoints and key in other._breakpoints:
+                merged._breakpoints[key] = self._breakpoints[key].merge(
+                    other._breakpoints[key]
+                )
+            elif key in other._breakpoints:
+                merged._breakpoints[key] = copy.deepcopy(other._breakpoints[key])
+            else:
+                merged._breakpoints[key] = copy.deepcopy(self._breakpoints[key])
+
         return merged
 
     def to_inline(self) -> str:
         """
         Generate inline style string (for style="..." attribute).
         Note: This only includes base styles, not pseudo-selectors or breakpoints.
+        Values are validated against CSS injection patterns.
 
         Returns:
             CSS string suitable for inline styles
+
+        Raises:
+            ValueError: If any CSS value contains dangerous content
         """
         if not self._styles:
             return ""
+        for key, value in self._styles.items():
+            if not _validate_css_value(str(value)):
+                raise ValueError(
+                    f"CSS value for '{key}' contains potentially dangerous content: "
+                    f"{value!r}. Values cannot contain javascript:, expression(), "
+                    "or other injection patterns."
+                )
         return "; ".join(f"{k}: {v}" for k, v in self._styles.items())
 
     def to_dict(self) -> Dict[str, Any]:
@@ -116,7 +153,7 @@ class CSSStyle:
         Returns:
             Dictionary representation of the style
         """
-        result = {"styles": self._styles}
+        result: Dict[str, Any] = {"styles": self._styles.copy()}
 
         if self._pseudo:
             result["pseudo"] = {k: v.to_dict() for k, v in self._pseudo.items()}
@@ -140,7 +177,7 @@ class CSSStyle:
             New CSSStyle object
         """
         style = cls()
-        style._styles = data.get("styles", {})
+        style._styles = dict(data.get("styles", {}))
 
         if "pseudo" in data:
             for key, value in data["pseudo"].items():
@@ -192,4 +229,7 @@ class CSSStyle:
     def __hash__(self) -> int:
         """Make CSSStyle hashable for use in dictionaries."""
         styles_tuple = tuple(sorted(self._styles.items()))
-        return hash(styles_tuple)
+        # Include pseudo and breakpoint keys in hash for better distribution
+        pseudo_keys = tuple(sorted(self._pseudo.keys()))
+        bp_keys = tuple(sorted(self._breakpoints.keys()))
+        return hash((styles_tuple, pseudo_keys, bp_keys))

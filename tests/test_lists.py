@@ -5,11 +5,11 @@ from nitro_ui.tags.lists import (
     UnorderedList,
     OrderedList,
     ListItem,
-    Datalist,
     DescriptionDetails,
     DescriptionList,
     DescriptionTerm,
 )
+from nitro_ui.tags.form import Datalist
 
 
 class TestListTags(unittest.TestCase):
