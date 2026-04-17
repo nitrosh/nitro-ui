@@ -850,10 +850,12 @@ form = Form(
 )
 ```
 
+All `Field.*` methods accept an optional `id` parameter (defaults to `name` when omitted) and forward any additional keyword arguments (including `hx_*`) to the underlying input via `**attrs`.
+
 ### Text Fields
 
 ```python
-Field.text(name, label=None, required=False, min_length=None, max_length=None, pattern=None, placeholder=None, value=None, wrapper=None, **attrs)
+Field.text(name, label=None, required=False, min_length=None, max_length=None, pattern=None, placeholder=None, value=None, id=None, wrapper=None, **attrs)
 Field.email(name, label=None, required=False, placeholder=None, value=None, wrapper=None, **attrs)
 Field.password(name, label=None, required=False, min_length=None, max_length=None, placeholder=None, wrapper=None, **attrs)
 Field.url(name, label=None, required=False, placeholder=None, value=None, wrapper=None, **attrs)
@@ -883,8 +885,8 @@ Field.select("priority", [{"value": "1", "label": "Low", "disabled": True}])  # 
 # Pre-selected value
 Field.select("country", ["USA", "Canada"], value="Canada", label="Country")
 
-# Checkbox (label wraps input)
-Field.checkbox("terms", label="I agree to the Terms", required=True)
+# Checkbox (label wraps input, accepts checked=True and value="on")
+Field.checkbox("terms", label="I agree to the Terms", required=True, checked=False)
 
 # Radio buttons (wrapped in fieldset)
 Field.radio("plan", [("free", "Free"), ("pro", "Pro")], label="Select Plan", value="free")

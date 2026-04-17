@@ -37,8 +37,8 @@ def serialize_complex_structure():
     page = Div(
         Header(
             Nav(
-                Link("Home", href="/", class_name="nav-link"),
-                Link("About", href="/about", class_name="nav-link"),
+                Anchor("Home", href="/", class_name="nav-link"),
+                Anchor("About", href="/about", class_name="nav-link"),
                 class_name="main-nav",
             )
         ),

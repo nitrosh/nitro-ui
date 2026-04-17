@@ -281,7 +281,7 @@ class NavItem(HTMLElement):
 
         self.add_attribute("class", "nav-item")
 
-        link = Link(text, href=href, class_name="nav-link")
+        link = Anchor(text, href=href, class_name="nav-link")
         if active:
             link.add_attribute("class", "nav-link active")
             link.add_style("font-weight", "600")
@@ -308,7 +308,7 @@ class Navbar(HTMLElement):
 
         # Brand
         self.append(
-            Link(brand, href="/", class_name="navbar-brand").add_styles(
+            Anchor(brand, href="/", class_name="navbar-brand").add_styles(
                 {
                     "font-size": "20px",
                     "font-weight": "700",

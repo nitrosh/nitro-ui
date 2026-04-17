@@ -368,7 +368,10 @@ class TestHTMLElement(unittest.TestCase):
 
     def test_from_json_simple_element(self):
         """Test reconstruction from JSON string."""
-        json_str = '{"tag": "p", "self_closing": false, "attributes": {"id": "test"}, "text": "Hello", "children": []}'
+        json_str = (
+            '{"tag": "p", "self_closing": false, '
+            '"attributes": {"id": "test"}, "text": "Hello", "children": []}'
+        )
         element = HTMLElement.from_json(json_str)
 
         self.assertEqual(element.tag, "p")

@@ -38,7 +38,9 @@ class TestFormTags(unittest.TestCase):
         self.assertEqual(select.tag, "select")
         self.assertEqual(
             str(select),
-            "<select><option>Option 1</option><option>Option 2</option><option>Option 3</option></select>",
+            "<select><option>Option 1</option>"
+            "<option>Option 2</option>"
+            "<option>Option 3</option></select>",
         )
 
     def test_option(self):
@@ -73,7 +75,11 @@ class TestFormTags(unittest.TestCase):
             Button("Submit"),
         )
         self.assertEqual(form.tag, "form")
-        expected = '<form><input type="text" name="username" /><input type="password" name="password" /><button>Submit</button></form>'
+        expected = (
+            '<form><input type="text" name="username" />'
+            '<input type="password" name="password" />'
+            "<button>Submit</button></form>"
+        )
         self.assertEqual(str(form), expected)
 
     def test_input(self):
@@ -97,7 +103,8 @@ class TestFormTags(unittest.TestCase):
         self.assertEqual(optgroup.tag, "optgroup")
         self.assertEqual(
             str(optgroup),
-            '<optgroup label="Group 1"><option>Option 1</option><option>Option 2</option></optgroup>',
+            '<optgroup label="Group 1"><option>Option 1</option>'
+            "<option>Option 2</option></optgroup>",
         )
 
     def test_legend(self):
@@ -112,7 +119,10 @@ class TestFormTags(unittest.TestCase):
             Legend("Contact Details"),
             Input(type="email", name="email"),
         )
-        expected = '<fieldset><legend>Contact Details</legend><input type="email" name="email" /></fieldset>'
+        expected = (
+            "<fieldset><legend>Contact Details</legend>"
+            '<input type="email" name="email" /></fieldset>'
+        )
         self.assertEqual(str(fieldset), expected)
 
     def test_output(self):

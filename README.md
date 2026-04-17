@@ -44,13 +44,15 @@ print(page.render(pretty=True))
 pip install nitro-ui
 ```
 
-### Claude Code Skill
+### AI Assistant Integration
 
-Add NitroUI as a skill in [Claude Code](https://claude.ai/code) for AI-assisted HTML generation:
+Add NitroUI knowledge to your AI coding assistant:
 
 ```bash
 npx skills add nitrosh/nitro-ui
 ```
+
+This enables AI assistants like Claude Code to understand NitroUI and generate correct HTML code.
 
 ## Quick Examples
 
@@ -421,11 +423,11 @@ black src/ tests/
 
 ## Ecosystem
 
-- **[nitro-cli](https://github.com/nitrosh/nitro-cli)** - Static site generator
-- **[nitro-ui](https://github.com/nitrosh/nitro-ui)** - Programmatic HTML generation
-- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Data loading with dot notation access
-- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Plugin system
-- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Data validation
+- **[nitro-cli](https://github.com/nitrosh/nitro-cli)** - Python-powered static site generator
+- **[nitro-datastore](https://github.com/nitrosh/nitro-datastore)** - Schema-free JSON data store with dot notation access
+- **[nitro-dispatch](https://github.com/nitrosh/nitro-dispatch)** - Framework-agnostic plugin system
+- **[nitro-image](https://github.com/nitrosh/nitro-image)** - Fast, friendly image processing for the web
+- **[nitro-validate](https://github.com/nitrosh/nitro-validate)** - Dependency-free data validation
 
 ## License
 

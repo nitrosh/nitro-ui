@@ -362,7 +362,7 @@ def sortable_table():
     def sortable_header(text, column):
         """Create a sortable header cell."""
         return TableHeaderCell(
-            Link(
+            Anchor(
                 text,
                 Span(" ↕", class_name="sort-icon"),
                 href=f"?sort={column}",

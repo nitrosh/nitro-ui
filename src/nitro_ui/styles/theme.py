@@ -367,8 +367,14 @@ class Theme:
                 "black": "#000000",
             },
             typography={
-                "body": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-                "heading": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+                "body": (
+                    "-apple-system, BlinkMacSystemFont, 'Segoe UI', "
+                    "Helvetica, Arial, sans-serif"
+                ),
+                "heading": (
+                    "-apple-system, BlinkMacSystemFont, 'Segoe UI', "
+                    "Helvetica, Arial, sans-serif"
+                ),
                 "mono": "'SF Mono', Monaco, 'Cascadia Code', monospace",
                 "sizes": {
                     "xs": "12px",

@@ -39,7 +39,7 @@ def constructor_attributes():
     print()
 
     # Link with target and rel
-    link = Link(
+    link = Anchor(
         "External Link",
         href="https://example.com",
         target="_blank",
@@ -216,8 +216,8 @@ def aria_attributes():
 
     # Navigation with ARIA landmark
     nav = Nav(
-        Link("Home", href="/"),
-        Link("About", href="/about"),
+        Anchor("Home", href="/"),
+        Anchor("About", href="/about"),
         aria_label="Main navigation",
         role="navigation",
     )

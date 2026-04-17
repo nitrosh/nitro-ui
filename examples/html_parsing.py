@@ -319,12 +319,12 @@ def build_template_library():
             """Register an HTML template."""
             self.templates[name] = html_string
 
-        def get(self, name, **replacements):
+        def get(self, template_name, **replacements):
             """Get a template instance with optional text replacements."""
-            if name not in self.templates:
-                raise ValueError(f"Template '{name}' not found")
+            if template_name not in self.templates:
+                raise ValueError(f"Template '{template_name}' not found")
 
-            element = from_html(self.templates[name])
+            element = from_html(self.templates[template_name])
 
             # Simple text replacement
             for attr_value, new_text in replacements.items():
@@ -397,13 +397,13 @@ def external_html_import():
         Head(
             Title("Our Service"),
             Meta(charset="utf-8"),
-            HtmlLink(rel="stylesheet", href="/styles.css"),
+            Link(rel="stylesheet", href="/styles.css"),
         ),
         Body(
             Header(
                 Nav(
-                    Link("Home", href="/"),
-                    Link("Services", href="/services"),
+                    Anchor("Home", href="/"),
+                    Anchor("Services", href="/services"),
                     class_name="main-nav",
                 )
             ),

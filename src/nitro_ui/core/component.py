@@ -1,5 +1,5 @@
 import inspect
-from typing import Union, List, Any, Dict, Set
+from typing import List, Any, Dict, Set
 
 from nitro_ui.core.element import HTMLElement
 from nitro_ui.core.slot import Slot

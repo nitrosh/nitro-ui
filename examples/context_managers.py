@@ -33,9 +33,9 @@ def nested_context_managers():
         with Header(class_name="site-header") as header:
             header.append(H1("My Website"))
             with Nav(class_name="main-nav") as nav:
-                nav.append(Link("Home", href="/"))
-                nav.append(Link("About", href="/about"))
-                nav.append(Link("Contact", href="/contact"))
+                nav.append(Anchor("Home", href="/"))
+                nav.append(Anchor("About", href="/about"))
+                nav.append(Anchor("Contact", href="/contact"))
             header.append(nav)
         page.append(header)
 
@@ -60,7 +60,7 @@ def comparison_with_regular():
 
     # Regular nesting (constructor-based)
     regular = Div(
-        Header(H1("Title"), Nav(Link("Home", href="/"), Link("About", href="/about"))),
+        Header(H1("Title"), Nav(Anchor("Home", href="/"), Anchor("About", href="/about"))),
         Main(Article(H2("Article"), Paragraph("Content"))),
         Footer(Paragraph("Footer")),
         id="regular",
@@ -74,8 +74,8 @@ def comparison_with_regular():
         with Header() as header:
             header.append(H1("Title"))
             with Nav() as nav:
-                nav.append(Link("Home", href="/"))
-                nav.append(Link("About", href="/about"))
+                nav.append(Anchor("Home", href="/"))
+                nav.append(Anchor("About", href="/about"))
             header.append(nav)
         context.append(header)
 
@@ -139,16 +139,16 @@ def conditional_with_context():
 
         with Nav(class_name="user-nav") as nav:
             if is_logged_in:
-                nav.append(Link("Profile", href="/profile"))
-                nav.append(Link("Settings", href="/settings"))
+                nav.append(Anchor("Profile", href="/profile"))
+                nav.append(Anchor("Settings", href="/settings"))
 
                 if is_admin:
-                    nav.append(Link("Admin Panel", href="/admin"))
+                    nav.append(Anchor("Admin Panel", href="/admin"))
 
-                nav.append(Link("Logout", href="/logout"))
+                nav.append(Anchor("Logout", href="/logout"))
             else:
-                nav.append(Link("Login", href="/login"))
-                nav.append(Link("Sign Up", href="/signup"))
+                nav.append(Anchor("Login", href="/login"))
+                nav.append(Anchor("Sign Up", href="/signup"))
 
         header.append(nav)
 
@@ -273,7 +273,7 @@ def complex_layout_with_context():
                 with UnorderedList() as menu:
                     for item in sidebar_items:
                         with ListItem() as li:
-                            li.append(Link(item, href=f"/{item.lower()}"))
+                            li.append(Anchor(item, href=f"/{item.lower()}"))
                         menu.append(li)
                 nav.append(menu)
             sidebar.append(nav)
@@ -331,7 +331,7 @@ def mixing_styles_in_context():
         # Regular nesting for simple structures
         container.append(
             Header(
-                H1("Title"), Nav(Link("Link 1", href="#1"), Link("Link 2", href="#2"))
+                H1("Title"), Nav(Anchor("Link 1", href="#1"), Anchor("Link 2", href="#2"))
             )
         )
 

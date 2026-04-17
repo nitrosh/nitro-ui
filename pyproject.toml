@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nitro-ui"
-version = "1.0.8"
+version = "1.0.9"
 description = "Build HTML with Python, not strings. Zero-dependency library with type-safe elements, method chaining, and JSON serialization."
 readme = "README.md"
 requires-python = ">=3.8"
 license-files = ["LICEN[CS]E*"]
 authors = [
-    { name = "Sean Nieuwoudt", email = "sean@underwulf.com" }
+    { name = "Sean Nieuwoudt", email = "sean@nitro.sh" }
 ]
 classifiers = [
     "Operating System :: OS Independent",
@@ -29,16 +29,28 @@ classifiers = [
     "Topic :: Utilities",
     "Natural Language :: English"
 ]
-keywords = ["json", "ui", "framework", "html", "components", "frontend"]
+keywords = [
+    "html",
+    "html-generation",
+    "ui",
+    "components",
+    "frontend",
+    "templating",
+    "htmx",
+    "ssr",
+    "nitro",
+    "static-site",
+    "json-serialization",
+]
 
 dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nitro-sh/nitro-ui"
-Documentation = "https://github.com/nitro-sh/nitro-ui#readme"
-Repository = "https://github.com/nitro-sh/nitro-ui"
-Issues = "https://github.com/nitro-sh/nitro-ui/issues"
+Homepage = "https://github.com/nitrosh/nitro-ui"
+Documentation = "https://github.com/nitrosh/nitro-ui#readme"
+Repository = "https://github.com/nitrosh/nitro-ui"
+Issues = "https://github.com/nitrosh/nitro-ui/issues"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
