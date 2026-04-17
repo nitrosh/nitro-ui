@@ -3,6 +3,17 @@ from nitro_ui.tags.tag_factory import simple_tag_class
 
 
 class HTML(HTMLElement):
+    """Root ``<html>`` element that also emits ``<!DOCTYPE html>``.
+
+    Defaults ``lang="en"`` and ``dir="ltr"`` if not overridden. When
+    rendered it prepends the HTML5 doctype declaration, so it is
+    intended as the outermost node of a full page.
+
+    Example:
+        >>> HTML(Head(Title("Home")), Body(H1("Hi"))).render().startswith("<!DOCTYPE html>")
+        True
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(
             *args,

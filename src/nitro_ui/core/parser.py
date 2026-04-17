@@ -195,28 +195,32 @@ class NitroUIHTMLParser(HTMLParser):
 def from_html(
     html_string: str, fragment: bool = False
 ) -> Union[HTMLElement, List[HTMLElement], None]:
-    """Parse HTML string and convert to NitroUI element(s).
+    """Parse an HTML string into a NitroUI element tree.
+
+    Uses the standard library's ``html.parser`` under the hood. Class
+    attributes are mapped to ``class_name``; SVG camelCase attributes
+    (``viewBox`` etc.) are preserved. Whitespace inside ``<pre>``,
+    ``<code>``, ``<textarea>``, ``<script>``, and ``<style>`` is kept
+    verbatim; elsewhere it is stripped.
 
     Args:
-        html_string: Raw HTML string to parse
-        fragment: If True, returns list of elements (for HTML fragments)
-                 If False, returns single root element (default)
+        html_string: Raw HTML source.
+        fragment: If ``True``, return a list with every root-level
+            element (useful for snippets). If ``False``, return only the
+            first root element, or ``None`` for an empty input.
 
     Returns:
-        HTMLElement if fragment=False, List[HTMLElement] if fragment=True
+        A single ``HTMLElement`` when ``fragment=False`` (or ``None`` if
+        nothing was parsed), otherwise a list of elements.
+
+    Raises:
+        TypeError: If ``html_string`` is not a string.
 
     Example:
-        >>> from nitro_ui.core.parser import from_html
-        >>>
-        >>> # Parse single element
-        >>> element = from_html('<div class="container"><h1>Hello</h1></div>')
-        >>> print(element.render())
-        <div class="container"><h1>Hello</h1></div>
-        >>>
-        >>> # Parse fragment (multiple root elements)
-        >>> elements = from_html('<h1>Title</h1><p>Content</p>', fragment=True)
-        >>> for el in elements:
-        ...     print(el.render())
+        >>> from_html('<div class="container"><h1>Hello</h1></div>').render()
+        '<div class="container"><h1>Hello</h1></div>'
+        >>> [el.render() for el in from_html('<h1>A</h1><p>B</p>', fragment=True)]
+        ['<h1>A</h1>', '<p>B</p>']
     """
     if not isinstance(html_string, str):
         raise TypeError(

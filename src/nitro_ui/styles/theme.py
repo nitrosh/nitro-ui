@@ -6,26 +6,20 @@ from .style import CSSStyle
 
 
 class Theme:
-    """
-    Represents a design theme with colors, typography, spacing, and component styles.
+    """Named design tokens plus component style presets.
 
-    Usage:
-        # Create custom theme
-        theme = Theme(
-            name="Custom",
-            colors={
-                "primary": "#007bff",
-                "secondary": "#6c757d"
-            }
-        )
+    A ``Theme`` groups colors, typography, spacing, and per-component
+    ``CSSStyle`` objects into a single bundle. When attached to a
+    ``StyleSheet``, the theme's tokens are emitted as CSS custom
+    properties inside a ``:root`` block. Three presets are included:
+    :meth:`modern`, :meth:`classic`, and :meth:`minimal`.
 
-        # Use with stylesheet
-        stylesheet = StyleSheet(theme=theme)
-
-        # Or use preset themes
-        theme = Theme.modern()
-        theme = Theme.classic()
-        theme = Theme.minimal()
+    Example:
+        >>> theme = Theme.modern()
+        >>> "primary" in theme.colors
+        True
+        >>> "--color-primary" in theme.get_css_variables()
+        True
     """
 
     def __init__(
@@ -36,15 +30,19 @@ class Theme:
         spacing: Optional[Dict[str, str]] = None,
         components: Optional[Dict[str, Any]] = None,
     ):
-        """
-        Initialize a Theme.
+        """Create a theme from individual token maps.
 
         Args:
-            name: Theme name
-            colors: Color palette (e.g., {"primary": "#007bff"})
-            typography: Font settings (e.g., {"body": "Arial, sans-serif"})
-            spacing: Spacing scale (e.g., {"sm": "8px", "md": "16px"})
-            components: Pre-styled component definitions
+            name: Human-readable label (e.g. ``"Modern"``).
+            colors: Map of semantic color names to values - emitted as
+                ``--color-<name>`` variables.
+            typography: Font and size map - emitted as ``--font-...``
+                variables. Nested dicts (e.g. ``sizes``) produce
+                ``--font-<group>-<key>`` variables.
+            spacing: Spacing scale - emitted as ``--spacing-<name>``.
+            components: Per-component ``CSSStyle`` presets. Each value
+                may be a single ``CSSStyle`` or a dict of variant names
+                to ``CSSStyle`` (e.g. ``{"button": {"primary": ...}}``).
         """
         self.name = name
         self.colors = colors or {}
@@ -53,11 +51,14 @@ class Theme:
         self.components = components or {}
 
     def get_css_variables(self) -> Dict[str, str]:
-        """
-        Generate CSS variables from theme properties.
+        """Flatten colors, spacing, and typography into CSS custom properties.
+
+        Called by ``StyleSheet.render()`` when a theme is attached, so
+        every variable lands in the ``:root {}`` block.
 
         Returns:
-            Dictionary of CSS variable names and values
+            A dict mapping variable names (``--color-primary``,
+            ``--spacing-md``, ``--font-body``, ...) to their values.
         """
         variables = {}
 
@@ -84,15 +85,20 @@ class Theme:
     def get_component_style(
         self, component: str, variant: str = "default"
     ) -> Optional[CSSStyle]:
-        """
-        Get a component style from the theme.
+        """Look up a preset ``CSSStyle`` for a component, optionally by variant.
+
+        Components may be stored as a single style or as a map of
+        variant names; this method handles both shapes.
 
         Args:
-            component: Component name (e.g., "button", "card")
-            variant: Variant name (e.g., "primary", "secondary")
+            component: Component key (e.g. ``"button"``, ``"card"``).
+            variant: Variant to pull from a variant map (e.g.
+                ``"primary"``). Ignored when the component is stored as
+                a single style.
 
         Returns:
-            CSSStyle object or None if not found
+            The matching ``CSSStyle``, or ``None`` if the component or
+            variant is not defined on this theme.
         """
         if component not in self.components:
             return None
@@ -107,11 +113,11 @@ class Theme:
         return None
 
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Serialize theme to dictionary.
+        """Serialize the theme (including nested component styles) to a dict.
 
-        Returns:
-            Dictionary representation
+        Returns a JSON-safe dict that round-trips via ``from_dict()``.
+        Component entries that are ``CSSStyle`` instances are converted
+        to their dict form.
         """
         return {
             "name": self.name,
@@ -133,14 +139,13 @@ class Theme:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Theme":
-        """
-        Deserialize theme from dictionary.
+        """Reconstruct a ``Theme`` from a ``to_dict()`` result.
 
         Args:
-            data: Dictionary representation
+            data: Dict previously produced by ``to_dict()``.
 
         Returns:
-            New Theme object
+            A new ``Theme`` with equivalent tokens and components.
         """
         # Reconstruct components
         components = {}
@@ -166,18 +171,17 @@ class Theme:
         )
 
     def __repr__(self) -> str:
-        """String representation for debugging."""
+        """Return a debug representation containing the theme name."""
         return f"Theme(name='{self.name}')"
 
     # Preset themes
 
     @classmethod
     def modern(cls) -> "Theme":
-        """
-        Modern theme with clean, contemporary design.
+        """Return the built-in "Modern" preset.
 
-        Returns:
-            Modern Theme object
+        A blue/violet palette with Inter-family fonts and rounded
+        buttons. Suitable for contemporary SaaS interfaces.
         """
         return cls(
             name="Modern",
@@ -256,11 +260,10 @@ class Theme:
 
     @classmethod
     def classic(cls) -> "Theme":
-        """
-        Classic theme with traditional, timeless design.
+        """Return the built-in "Classic" preset.
 
-        Returns:
-            Classic Theme object
+        A Bootstrap-style palette with serif typography and square-ish
+        components. Suitable for editorial or corporate interfaces.
         """
         return cls(
             name="Classic",
@@ -343,11 +346,10 @@ class Theme:
 
     @classmethod
     def minimal(cls) -> "Theme":
-        """
-        Minimal theme with clean, stripped-down design.
+        """Return the built-in "Minimal" preset.
 
-        Returns:
-            Minimal Theme object
+        Black-and-white palette with system fonts, flat buttons, and
+        no rounding. Suitable for content-heavy, text-first interfaces.
         """
         return cls(
             name="Minimal",

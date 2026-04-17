@@ -16,11 +16,33 @@ Colgroup = simple_tag_class("colgroup")
 
 
 class Table(HTMLElement):
+    """HTML ``<table>`` element with helpers for loading data from files."""
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **{**kwargs, "tag": "table"})
 
     @classmethod
     def from_csv(cls, file_path: str, encoding: str = "utf-8") -> "Table":
+        """Load a CSV file into a ``<table>`` of ``<tr>`` / ``<td>`` rows.
+
+        Every row becomes a ``TableRow``; every cell becomes a
+        ``TableDataCell``. The first row is not treated specially - wrap
+        it in a ``TableHeader`` yourself if you need ``<th>``.
+
+        Args:
+            file_path: Path to a CSV file on disk.
+            encoding: Text encoding to read the file as.
+
+        Returns:
+            A populated ``Table`` instance.
+
+        Raises:
+            ValueError: If the file is missing, has an encoding mismatch,
+                or cannot be parsed as CSV.
+
+        Example:
+            >>> Table.from_csv("data.csv").render()  # doctest: +SKIP
+        """
         table = cls()
         try:
             with open(file_path, mode="r", encoding=encoding) as file:
@@ -40,6 +62,22 @@ class Table(HTMLElement):
 
     @classmethod  # type: ignore[override]
     def from_json(cls, file_path: str, encoding: str = "utf-8") -> "Table":
+        """Load a JSON file (a list of row-lists) into a ``<table>``.
+
+        The file must decode to a list of lists; each inner list is
+        rendered as a row of ``<td>`` cells (values are stringified).
+
+        Args:
+            file_path: Path to a JSON file on disk.
+            encoding: Text encoding to read the file as.
+
+        Returns:
+            A populated ``Table`` instance.
+
+        Raises:
+            ValueError: If the file is missing, has an encoding mismatch,
+                is not valid JSON, or is not a list-of-lists.
+        """
         table = cls()
         try:
             with open(file_path, mode="r", encoding=encoding) as file:
