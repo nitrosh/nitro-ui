@@ -60,21 +60,27 @@ def _filter_none(**kwargs) -> Dict[str, Any]:
 
 
 class Field:
-    """Static methods for generating HTML5 form fields with validation attributes.
+    """Factory of static methods that emit common HTML5 form inputs.
 
-    All methods return standard NitroUI elements that can be composed with
-    other elements. Use the `label` parameter to add a label, and `wrapper`
-    to wrap the field in a div for styling.
+    Every method returns a regular NitroUI ``HTMLElement`` so results
+    compose with the rest of the library. Two optional knobs are shared
+    across most methods:
+
+    - ``label``: when provided, wraps the input with a ``<label>``.
+      Checkboxes and radios are special-cased so the label behaves
+      correctly for their semantics.
+    - ``wrapper``: when provided, nests the field inside a ``<div>``.
+      Pass a string to use it as the wrapper's class, or a dict to
+      forward arbitrary attributes.
 
     Example:
-        from nitro_ui import Form, Button
-        from nitro_ui.forms import Field
-
-        form = Form(
-            Field.email("email", label="Email", required=True),
-            Field.password("password", label="Password", min_length=8),
-            Button("Log In", type="submit")
-        )
+        >>> from nitro_ui import Form, Button
+        >>> from nitro_ui.forms import Field
+        >>> form = Form(
+        ...     Field.email("email", label="Email", required=True),
+        ...     Field.password("password", label="Password", min_length=8),
+        ...     Button("Log In", type="submit"),
+        ... )
     """
 
     # =========================================================================
@@ -95,20 +101,26 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a text input field.
+        """Build a single-line ``<input type="text">`` with validation attrs.
 
         Args:
-            name: Field name and default id
-            label: Optional label text
-            required: Whether the field is required
-            min_length: Minimum character length
-            max_length: Maximum character length
-            pattern: Regex pattern for validation
-            placeholder: Placeholder text
-            value: Default value
-            wrapper: Wrapper div class name or attributes dict
-            id: Custom id (defaults to name)
-            **attrs: Additional HTML attributes
+            name: Form field name; also used as the default ``id``.
+            label: Optional visible ``<label>`` text.
+            required: Emit the HTML ``required`` attribute.
+            min_length: Minimum character count (``minlength``).
+            max_length: Maximum character count (``maxlength``).
+            pattern: JS regex source for client-side validation.
+            placeholder: Placeholder text shown when empty.
+            value: Initial value of the input.
+            wrapper: ``<div>`` wrapper - a CSS class string or an
+                attribute dict.
+            id: Override the default id (defaults to ``name``).
+            **attrs: Extra attributes passed through to the ``<input>``.
+
+        Returns:
+            An ``<input>``, a ``Fragment(<label>, <input>)``, or the
+            pair wrapped in a ``<div>`` - depending on which optional
+            arguments were supplied.
         """
         field_id = id or name
         input_attrs = _filter_none(
@@ -137,7 +149,12 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create an email input field."""
+        """Build an ``<input type="email">`` with browser-side format validation.
+
+        Same shared options as :meth:`text` (``label``, ``wrapper``,
+        ``id``, ``**attrs``). Browsers validate the value against their
+        internal email grammar when ``required`` is set.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="email",
@@ -163,7 +180,12 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a password input field."""
+        """Build an ``<input type="password">`` with optional length constraints.
+
+        Has no ``value`` parameter - passwords should not be
+        round-tripped. Use ``min_length`` / ``max_length`` for strength
+        hints. Same shared options as :meth:`text`.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="password",
@@ -189,7 +211,11 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a URL input field."""
+        """Build an ``<input type="url">`` with browser-side URL validation.
+
+        Same shared options as :meth:`text`. Browsers validate against a
+        basic absolute-URL grammar when ``required`` is set.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="url",
@@ -215,7 +241,12 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a telephone input field."""
+        """Build an ``<input type="tel">`` for phone-number entry.
+
+        The ``tel`` input type enables mobile keyboards but browsers do
+        no format validation - supply a ``pattern`` for client-side
+        checks. Same shared options as :meth:`text`.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="tel",
@@ -241,7 +272,11 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a search input field."""
+        """Build an ``<input type="search">`` with browser-provided clear affordance.
+
+        Same shared options as :meth:`text`. Browsers typically render a
+        built-in "clear" control and inline search decorations.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="search",
@@ -270,7 +305,12 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a textarea field."""
+        """Build a multi-line ``<textarea>`` input.
+
+        Any ``value`` is inserted as the textarea's text content (not an
+        attribute, per the HTML spec). Supports ``rows`` / ``cols`` sizing
+        and ``min_length`` / ``max_length`` validation.
+        """
         field_id = id or name
         textarea_attrs = _filter_none(
             id=field_id,
@@ -307,7 +347,12 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a number input field."""
+        """Build an ``<input type="number">`` for numeric entry.
+
+        Use ``min`` / ``max`` / ``step`` to constrain the allowed values.
+        ``step="any"`` permits arbitrary decimals. Same shared options
+        as :meth:`text`.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="number",
@@ -335,7 +380,12 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a range slider input field."""
+        """Build an ``<input type="range">`` slider with a bounded numeric range.
+
+        Defaults to ``min=0`` and ``max=100``. The slider value is
+        always within the inclusive ``[min, max]`` range; ``step``
+        controls the snap increment.
+        """
         field_id = id or name
         input_attrs = _filter_none(
             type="range",
@@ -366,10 +416,15 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a date input field.
+        """Build an ``<input type="date">`` picker constrained to ``YYYY-MM-DD`` dates.
+
+        Browsers render a native date picker. Same shared options as
+        :meth:`text`.
 
         Args:
-            min/max/value: Date strings in YYYY-MM-DD format
+            min: Earliest selectable date as ``YYYY-MM-DD``.
+            max: Latest selectable date as ``YYYY-MM-DD``.
+            value: Initial date as ``YYYY-MM-DD``.
         """
         field_id = id or name
         input_attrs = _filter_none(
@@ -397,10 +452,15 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a time input field.
+        """Build an ``<input type="time">`` picker constrained to ``HH:MM`` times.
+
+        Browsers render a native time picker. Same shared options as
+        :meth:`text`.
 
         Args:
-            min/max/value: Time strings in HH:MM format
+            min: Earliest selectable time as ``HH:MM``.
+            max: Latest selectable time as ``HH:MM``.
+            value: Initial time as ``HH:MM``.
         """
         field_id = id or name
         input_attrs = _filter_none(
@@ -428,10 +488,15 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a datetime-local input field.
+        """Build an ``<input type="datetime-local">`` picker for local datetimes.
+
+        The value is timezone-naive; browsers submit it as
+        ``YYYY-MM-DDTHH:MM``. Same shared options as :meth:`text`.
 
         Args:
-            min/max/value: Datetime strings in YYYY-MM-DDTHH:MM format
+            min: Earliest selectable value as ``YYYY-MM-DDTHH:MM``.
+            max: Latest selectable value as ``YYYY-MM-DDTHH:MM``.
+            value: Initial value as ``YYYY-MM-DDTHH:MM``.
         """
         field_id = id or name
         input_attrs = _filter_none(
@@ -462,19 +527,26 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a select dropdown field.
+        """Build a ``<select>`` dropdown populated from a flexible options list.
+
+        Options accept three shapes, in order of flexibility:
+
+        - ``str``: ``"USA"`` - value and label are identical.
+        - ``tuple``: ``("us", "United States")`` - ``(value, label)``.
+        - ``dict``: ``{"value": "us", "label": "United States",
+          "disabled": True}`` - arbitrary extra keys become
+          ``<option>`` attributes.
 
         Args:
-            name: Field name
-            options: List of options - can be:
-                - strings: ["USA", "Canada"] - value and label are the same
-                - tuples: [("us", "United States")] - (value, label)
-                - dicts: [{"value": "us", "label": "United States", "disabled": True}]
-            label: Optional label text
-            required: Whether selection is required
-            value: Pre-selected value
-            wrapper: Wrapper div class name or attributes dict
-            id: Custom id (defaults to name)
+            name: Form field name; also used as the default id.
+            options: Iterable of option descriptors (see above).
+            label: Optional ``<label>`` text.
+            required: Emit the HTML ``required`` attribute.
+            value: Pre-select the option whose value matches (compared
+                as strings).
+            wrapper: ``<div>`` wrapper - class string or attribute dict.
+            id: Override the default id (defaults to ``name``).
+            **attrs: Extra attributes passed to the ``<select>``.
         """
         field_id = id or name
 
@@ -520,18 +592,23 @@ class Field:
         required: bool = False,
         **attrs,
     ) -> HTMLElement:
-        """Create a checkbox field.
+        """Build an ``<input type="checkbox">``, with the label wrapping the input.
 
-        For checkboxes, the label wraps the input for better UX.
+        Unlike other field factories, the label here wraps the checkbox
+        - clicking the label text toggles the state, which is the
+        conventional accessible layout.
 
         Args:
-            name: Field name
-            label: Label text (wraps the checkbox)
-            checked: Whether the checkbox is pre-checked
-            value: Value sent when checked (default "on")
-            wrapper: Wrapper div class name or attributes dict
-            id: Custom id (defaults to name)
-            required: Whether the checkbox must be checked
+            name: Form field name; also used as the default id.
+            label: Label text. When provided, wraps ``<input>`` and a
+                ``<span>`` containing the text.
+            checked: Emit the ``checked`` attribute.
+            value: Value submitted when the box is checked. Defaults
+                to ``"on"``, matching browser behaviour.
+            wrapper: ``<div>`` wrapper - class string or attribute dict.
+            id: Override the default id (defaults to ``name``).
+            required: Emit the ``required`` attribute - the box must
+                be ticked for the form to submit.
         """
         field_id = id or name
         input_attrs = _filter_none(
@@ -575,17 +652,23 @@ class Field:
         wrapper: Optional[Union[str, Dict[str, Any]]] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a radio button group.
+        """Build a radio-button group wrapped in an accessible ``<fieldset>``.
 
-        Radio buttons are wrapped in a fieldset with legend for accessibility.
+        Every option produces an ``<input type="radio">`` that shares
+        ``name`` with its siblings; a ``<legend>`` carries the group
+        label. Only the first option receives the ``required`` attribute
+        - that is sufficient for the entire group.
 
         Args:
-            name: Field name (shared by all radio buttons)
-            options: List of options - tuples or dicts like select()
-            label: Legend text for the fieldset
-            required: Whether selection is required
-            value: Pre-selected value
-            wrapper: Wrapper div class name or attributes dict
+            name: Shared form field name for the group.
+            options: Iterable of ``(value, label)`` tuples or option
+                dicts with ``value``/``label``/extra keys, mirroring
+                :meth:`select`.
+            label: Text for the group's ``<legend>``.
+            required: Require a selection before the form submits.
+            value: Value of the option to pre-check (compared as strings).
+            wrapper: ``<div>`` wrapper - class string or attribute dict.
+            **attrs: Extra attributes applied to every ``<input>``.
         """
         # Build radio button elements
         radio_elements = []
@@ -648,16 +731,17 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a file upload field.
+        """Build an ``<input type="file">`` for attaching files from the client.
 
         Args:
-            name: Field name
-            label: Optional label text
-            required: Whether file selection is required
-            accept: Accepted file types (e.g., "image/*", ".pdf,.doc")
-            multiple: Allow multiple file selection
-            wrapper: Wrapper div class name or attributes dict
-            id: Custom id (defaults to name)
+            name: Form field name; also used as the default id.
+            label: Optional ``<label>`` text.
+            required: Emit the ``required`` attribute.
+            accept: Filter the native picker by MIME types or
+                extensions (e.g. ``"image/*"``, ``".pdf,.doc"``).
+            multiple: Allow selecting more than one file at once.
+            wrapper: ``<div>`` wrapper - class string or attribute dict.
+            id: Override the default id (defaults to ``name``).
         """
         field_id = id or name
         input_attrs = _filter_none(
@@ -674,11 +758,15 @@ class Field:
 
     @staticmethod
     def hidden(name: str, value: str, **attrs) -> HTMLElement:
-        """Create a hidden input field.
+        """Build an ``<input type="hidden">`` for carrying state through a form.
+
+        Always returns a bare ``<input>`` - no label, no wrapper - since
+        hidden inputs are not user-visible.
 
         Args:
-            name: Field name
-            value: Hidden value
+            name: Form field name.
+            value: Value submitted with the form.
+            **attrs: Extra attributes passed through to the ``<input>``.
         """
         return Input(type="hidden", name=name, value=value, **attrs)
 
@@ -691,14 +779,17 @@ class Field:
         id: Optional[str] = None,
         **attrs,
     ) -> HTMLElement:
-        """Create a color picker field.
+        """Build an ``<input type="color">`` color picker.
+
+        Browsers submit colors as ``#RRGGBB`` lowercase hex; the picker
+        UI is browser-native.
 
         Args:
-            name: Field name
-            label: Optional label text
-            value: Default color in #RRGGBB format
-            wrapper: Wrapper div class name or attributes dict
-            id: Custom id (defaults to name)
+            name: Form field name; also used as the default id.
+            label: Optional ``<label>`` text.
+            value: Initial color as ``#RRGGBB`` hex.
+            wrapper: ``<div>`` wrapper - class string or attribute dict.
+            id: Override the default id (defaults to ``name``).
         """
         field_id = id or name
         input_attrs = _filter_none(

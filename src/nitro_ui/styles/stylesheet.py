@@ -60,34 +60,27 @@ def _sanitize_css_value(value: str) -> str:
 
 
 class StyleSheet:
-    """
-    Manages CSS classes and generates <style> tag content.
+    """Registry of named CSS classes that renders to a ``<style>`` block.
 
-    Usage:
-        # Create stylesheet
-        stylesheet = StyleSheet()
+    Attach ``CSSStyle`` objects under class names (or let the registry
+    auto-name them), then emit the full stylesheet - including any theme
+    CSS variables - with ``render()`` or ``to_style_tag()``. Responsive
+    breakpoints stored on styles are rendered as ``@media`` queries
+    using this sheet's breakpoint values.
 
-        # Register styles
-        btn_class = stylesheet.register("btn-primary", CSSStyle(
-            background_color="#007bff",
-            color="white",
-            padding="10px 20px",
-            _hover=CSSStyle(background_color="#0056b3")
-        ))
-
-        # Use in HTML
-        button = Button("Click", class_name=btn_class)
-
-        # Render CSS
-        css_output = stylesheet.render()
+    Example:
+        >>> sheet = StyleSheet()
+        >>> btn = sheet.register("btn-primary", CSSStyle(color="white"))
+        >>> Button("Click", class_name=btn)  # doctest: +SKIP
+        >>> sheet.render()  # doctest: +SKIP
     """
 
     def __init__(self, theme: Optional["Theme"] = None):
-        """
-        Initialize StyleSheet.
+        """Create a new, empty stylesheet optionally tied to a theme.
 
         Args:
-            theme: Optional Theme object to include CSS variables
+            theme: Optional ``Theme`` whose CSS variables are emitted
+                inside a ``:root`` block when this sheet is rendered.
         """
         self.theme = theme
         self._classes: Dict[str, CSSStyle] = {}
@@ -106,18 +99,27 @@ class StyleSheet:
     def register(
         self, name: Optional[str] = None, style: Optional[CSSStyle] = None
     ) -> str:
-        """
-        Register a style as a CSS class.
+        """Store a style under a class name and return the name for use in HTML.
+
+        If ``name`` is omitted, an auto-name like ``"s-0"`` is generated.
+        User-supplied names are validated - BEM notation (``__``, ``--``)
+        is permitted but random punctuation is not.
 
         Args:
-            name: Optional class name. If not provided, auto-generates one.
-            style: CSSStyle object to register
+            name: Explicit class name, or ``None`` to auto-generate.
+            style: Style to register. An empty ``CSSStyle`` is used if
+                omitted - useful for reserving a name.
 
         Returns:
-            The class name (for use in class_name attribute)
+            The class name to pass to ``class_name=`` on an element.
 
         Raises:
-            ValueError: If the class name is invalid (contains dangerous characters)
+            ValueError: If ``name`` fails class-name validation.
+
+        Example:
+            >>> sheet = StyleSheet()
+            >>> sheet.register("btn", CSSStyle(color="white"))
+            'btn'
         """
         if style is None:
             style = CSSStyle()
@@ -147,17 +149,20 @@ class StyleSheet:
         modifier: Optional[str] = None,
         style: Optional[CSSStyle] = None,
     ) -> str:
-        """
-        Register a style using BEM naming convention.
+        """Register a style with a BEM-formatted class name.
+
+        Assembles ``block``, ``block__element``, or
+        ``block__element--modifier`` and delegates to ``register()``.
 
         Args:
-            block: Block name (e.g., "button")
-            element: Optional element name (e.g., "icon")
-            modifier: Optional modifier name (e.g., "primary")
-            style: CSSStyle object to register
+            block: Block name (e.g. ``"button"``).
+            element: Element name within the block (e.g. ``"icon"``).
+            modifier: Modifier applied to the block or element
+                (e.g. ``"primary"``).
+            style: Style to register against the generated name.
 
         Returns:
-            The BEM class name
+            The full BEM class name - e.g. ``"button__icon--primary"``.
         """
         # Build BEM class name
         class_name = block
@@ -171,38 +176,22 @@ class StyleSheet:
         return self.register(class_name, style)
 
     def get_style(self, name: str) -> Optional[CSSStyle]:
-        """
-        Get a registered style by class name.
-
-        Args:
-            name: Class name
-
-        Returns:
-            CSSStyle object or None if not found
-        """
+        """Return the style registered for a class name, or ``None`` if absent."""
         return self._classes.get(name)
 
     def has_class(self, name: str) -> bool:
-        """
-        Check if a class is registered.
-
-        Args:
-            name: Class name
-
-        Returns:
-            True if class exists
-        """
+        """Return ``True`` if a style is registered under this class name."""
         return name in self._classes
 
     def unregister(self, name: str) -> bool:
-        """
-        Remove a registered class.
+        """Remove a registered class and return whether it existed.
 
         Args:
-            name: Class name to remove
+            name: Class name to remove.
 
         Returns:
-            True if class was removed, False if not found
+            ``True`` if the class was present and removed, ``False``
+            if it was never registered.
         """
         if name in self._classes:
             del self._classes[name]
@@ -210,17 +199,19 @@ class StyleSheet:
         return False
 
     def clear(self) -> None:
-        """Remove all registered classes."""
+        """Drop every registered class and reset the auto-name counter."""
         self._classes.clear()
         self._counter = 0
 
     def set_breakpoint(self, name: str, value: str) -> None:
-        """
-        Set or update a breakpoint value.
+        """Override the ``min-width`` value used for a named breakpoint.
+
+        Affects the ``@media`` queries emitted by ``render()`` for any
+        styles that define responsive overrides.
 
         Args:
-            name: Breakpoint name (e.g., "sm", "md")
-            value: CSS value (e.g., "640px")
+            name: Breakpoint key (e.g. ``"sm"``, ``"md"``).
+            value: CSS length string (e.g. ``"640px"``).
         """
         self._breakpoint_values[name] = value
 
@@ -278,14 +269,23 @@ class StyleSheet:
         return css_lines
 
     def render(self, pretty: bool = True) -> str:
-        """
-        Generate CSS output for all registered classes.
+        """Emit the full CSS text for every registered class.
+
+        Output order: ``:root`` block with theme variables (if a theme
+        was provided), then each class in registration order with its
+        base rules, pseudo-selectors, and breakpoint media queries.
+        Values are re-validated against injection patterns on render.
 
         Args:
-            pretty: If True, format with newlines and indentation
+            pretty: If ``True``, format with line breaks and indentation.
+                If ``False``, collapse into a single compact line -
+                suitable for embedding in an inline ``<style>``.
 
         Returns:
-            CSS string
+            CSS source string.
+
+        Raises:
+            ValueError: If any registered value contains dangerous content.
         """
         css_lines = []
 
@@ -313,14 +313,14 @@ class StyleSheet:
             return "".join(line.strip() for line in css_lines)
 
     def to_style_tag(self, pretty: bool = True) -> str:
-        """
-        Generate a complete <style> tag with all CSS.
+        """Return the rendered CSS wrapped in a ready-to-drop ``<style>`` tag.
 
         Args:
-            pretty: If True, format with newlines and indentation
+            pretty: Forwarded to ``render()``; controls whether the
+                inner CSS is pretty-printed or compact.
 
         Returns:
-            HTML <style> tag with CSS
+            A string starting with ``<style>`` and ending with ``</style>``.
         """
         css = self.render(pretty=pretty)
         if pretty:
@@ -329,29 +329,19 @@ class StyleSheet:
             return f"<style>{css}</style>"
 
     def count_classes(self) -> int:
-        """
-        Get the number of registered classes.
-
-        Returns:
-            Number of classes
-        """
+        """Return the number of classes currently registered on this sheet."""
         return len(self._classes)
 
     def get_all_class_names(self) -> List[str]:
-        """
-        Get a list of all registered class names.
-
-        Returns:
-            List of class names
-        """
+        """Return a list of every registered class name, in insertion order."""
         return list(self._classes.keys())
 
     def to_dict(self) -> Dict:
-        """
-        Serialize stylesheet to dictionary.
+        """Serialize registered classes and breakpoint overrides to a dict.
 
-        Returns:
-            Dictionary representation
+        The result is JSON-safe and round-trips via ``from_dict()``. The
+        associated ``Theme`` (if any) is not serialized here - pass it
+        back in when deserializing.
         """
         return {
             "classes": {name: style.to_dict() for name, style in self._classes.items()},
@@ -360,15 +350,19 @@ class StyleSheet:
 
     @classmethod
     def from_dict(cls, data: Dict, theme: Optional["Theme"] = None) -> "StyleSheet":
-        """
-        Deserialize stylesheet from dictionary.
+        """Reconstruct a ``StyleSheet`` from a ``to_dict()`` result.
 
         Args:
-            data: Dictionary representation
-            theme: Optional theme to include
+            data: Dict produced by ``to_dict()``.
+            theme: Optional theme to attach to the new stylesheet; themes
+                are not serialized by ``to_dict()`` and must be supplied
+                here if they are needed.
 
         Returns:
-            New StyleSheet object
+            A new ``StyleSheet`` with matching classes and breakpoints.
+
+        Raises:
+            ValueError: If a serialized class name fails validation.
         """
         stylesheet = cls(theme=theme)
 
@@ -389,5 +383,5 @@ class StyleSheet:
         return stylesheet
 
     def __repr__(self) -> str:
-        """String representation for debugging."""
+        """Return a debug representation listing the registered class count."""
         return f"StyleSheet(classes={self.count_classes()})"

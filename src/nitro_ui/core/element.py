@@ -130,6 +130,28 @@ def _validate_css_value(value: str) -> bool:
 
 
 class HTMLElement:
+    """Foundation class for every HTML element in NitroUI.
+
+    Owns the tag name, attributes, inline styles, and a list of children
+    (other ``HTMLElement`` instances or plain strings). All mutating methods
+    return ``self`` so calls chain. Instances are also context managers and
+    are serializable to JSON or HTML.
+
+    Children may be passed positionally; keyword arguments become HTML
+    attributes. Python keywords are handled via ``class_name`` / ``for_element``
+    (``class_`` and ``for_`` are also accepted). Underscores in other kwargs
+    are converted to hyphens (``data_value`` -> ``data-value``); SVG
+    camelCase attributes (``view_box`` -> ``viewBox``) are preserved.
+
+    Text content and attribute values are HTML-escaped automatically; only
+    ``render()`` output is unescaped.
+
+    Example:
+        >>> el = HTMLElement("Hello", tag="div", class_name="greeting")
+        >>> el.append(HTMLElement("world", tag="span")).render()
+        '<div class="greeting">Hello<span>world</span></div>'
+    """
+
     __slots__ = [
         "_tag",
         "_children",
@@ -147,6 +169,23 @@ class HTMLElement:
         self_closing: bool = False,
         **attributes: str,
     ):
+        """Create an HTML element with the given tag, children, and attributes.
+
+        Args:
+            *children: Positional children. Each may be an ``HTMLElement``,
+                a string (appended to text content), a list/tuple of either
+                (flattened recursively), or ``None`` (skipped).
+            tag: HTML tag name (e.g. ``"div"``). Must match
+                ``^[a-zA-Z][a-zA-Z0-9-]*$``.
+            self_closing: If ``True``, renders as ``<tag />`` with no
+                closing tag. Adding children emits a warning.
+            **attributes: HTML attributes. See class docstring for the
+                naming conventions applied to keys.
+
+        Raises:
+            ValueError: If ``tag`` is empty, malformed, or a child has an
+                unsupported type.
+        """
         # Attributes that should keep underscores (not convert to hyphens)
         PRESERVE_UNDERSCORE = {"class_name", "for_element"}
 
@@ -240,11 +279,11 @@ class HTMLElement:
             pass
 
     def __enter__(self) -> "HTMLElement":
-        """Context manager entry - returns self for use in with statements."""
+        """Enter a ``with`` block, returning this element for further mutation."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Context manager exit - no cleanup needed."""
+        """Exit a ``with`` block. No cleanup is required."""
         pass
 
     @staticmethod
@@ -257,13 +296,25 @@ class HTMLElement:
                 yield item
 
     def prepend(self, *children: Union["HTMLElement", str, List[Any]]) -> "HTMLElement":
-        """Prepends children to the current tag.
+        """Insert children at the front of this element.
+
+        Mirrors ``append()`` but adds content at the start rather than the
+        end. Strings are prefixed to the existing text content; elements
+        are placed before existing children.
+
+        Args:
+            *children: Elements, strings, or nested lists/tuples. ``None``
+                values are skipped.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
 
         Raises:
-            ValueError: If any child is not an HTMLElement or string
+            ValueError: If any child is not an ``HTMLElement`` or string.
+
+        Example:
+            >>> Div(H2("Body")).prepend(H1("Title")).render()
+            '<div><h1>Title</h1><h2>Body</h2></div>'
         """
         new_children: List[HTMLElement] = []
         text_parts: List[str] = []
@@ -283,13 +334,25 @@ class HTMLElement:
         return self
 
     def append(self, *children: Union["HTMLElement", str, List[Any]]) -> "HTMLElement":
-        """Appends children to the current tag.
+        """Add children to the end of this element.
+
+        Strings are concatenated to the existing text content; elements
+        are placed after existing children. Nested lists/tuples are
+        flattened so you can splice collections in directly.
+
+        Args:
+            *children: Elements, strings, or nested lists/tuples. ``None``
+                values are skipped.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
 
         Raises:
-            ValueError: If any child is not an HTMLElement or string
+            ValueError: If any child is not an ``HTMLElement`` or string.
+
+        Example:
+            >>> Div().append(H1("Title"), Paragraph("Body")).render()
+            '<div><h1>Title</h1><p>Body</p></div>'
         """
         text_parts: List[str] = []
         for child in self._flatten(children):
@@ -313,16 +376,24 @@ class HTMLElement:
         max_depth: int = DEFAULT_MAX_DEPTH,
         _current_depth: int = 0,
     ) -> Iterator["HTMLElement"]:
-        """Yields children (and optionally descendants) that meet the condition.
+        """Yield children (and optionally descendants) matching a predicate.
 
         Args:
-            condition: A callable that takes a child and returns True if it matches
-            recursive: If True, search descendants recursively
-            max_depth: Maximum recursion depth (default 1000) to prevent stack overflow
-            _current_depth: Internal parameter for tracking current depth
+            condition: Called with each child; return ``True`` to yield it.
+            recursive: If ``True``, walk the full subtree; otherwise only
+                direct children are considered.
+            max_depth: Traversal cutoff (default 1000) guarding against
+                circular references.
+
+        Yields:
+            Matching ``HTMLElement`` instances.
 
         Raises:
-            RecursionError: If max_depth is exceeded
+            RecursionError: If ``max_depth`` is exceeded.
+
+        Example:
+            >>> list(page.filter(lambda c: c.tag == "img", recursive=True))
+            [<Image ...>, <Image ...>]
         """
         if _current_depth > max_depth:
             raise RecursionError(
@@ -341,10 +412,15 @@ class HTMLElement:
                 )
 
     def remove_all(self, condition: Callable[[Any], bool]) -> "HTMLElement":
-        """Removes all children that meet the condition.
+        """Remove every direct child matching a predicate.
+
+        Only the immediate children are considered (not descendants).
+
+        Args:
+            condition: Called with each child; return ``True`` to remove it.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
         """
         to_remove = list(self.filter(condition))
         for child in to_remove:
@@ -353,31 +429,52 @@ class HTMLElement:
         return self
 
     def clear(self) -> "HTMLElement":
-        """Clears all children from the tag.
+        """Remove all children from this element.
+
+        Text content is left untouched; use ``text = ""`` to clear it.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
         """
         self._children.clear()
         return self
 
     def pop(self, index: int = 0) -> "HTMLElement":
-        """Pops a child from the tag."""
+        """Remove and return a child by position.
+
+        Args:
+            index: Position to remove from; defaults to the first child.
+
+        Returns:
+            The removed ``HTMLElement``.
+
+        Raises:
+            IndexError: If the element has no children or the index is
+                out of range.
+        """
         return self._children.pop(index)
 
     def first(self) -> Union["HTMLElement", None]:
-        """Returns the first child of the tag."""
+        """Return the first child, or ``None`` if this element has none."""
         return self._children[0] if self._children else None
 
     def last(self) -> Union["HTMLElement", None]:
-        """Returns the last child of the tag."""
+        """Return the last child, or ``None`` if this element has none."""
         return self._children[-1] if self._children else None
 
     def add_attribute(self, key: str, value: str) -> "HTMLElement":
-        """Adds an attribute to the current tag.
+        """Set a single HTML attribute on this element.
+
+        Existing attributes with the same key are overwritten. Setting the
+        ``style`` attribute invalidates the parsed-styles cache used by
+        ``add_style`` / ``get_style``.
+
+        Args:
+            key: Attribute name (use ``class_name`` instead of ``class``).
+            value: Attribute value. Will be HTML-escaped at render time.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
         """
         # Prevent duplicate class attributes from mixed API usage
         if key == "class" and "class_name" in self._attributes:
@@ -392,10 +489,16 @@ class HTMLElement:
         return self
 
     def add_attributes(self, attributes: List[Tuple[str, str]]) -> "HTMLElement":
-        """Adds multiple attributes to the current tag.
+        """Set multiple HTML attributes in one call.
+
+        Args:
+            attributes: Iterable of ``(key, value)`` pairs.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
+
+        Example:
+            >>> el.add_attributes([("id", "main"), ("data-role", "card")])
         """
         has_style = False
         for key, value in attributes:
@@ -408,10 +511,13 @@ class HTMLElement:
         return self
 
     def remove_attribute(self, key: str) -> "HTMLElement":
-        """Removes an attribute from the current tag.
+        """Remove an attribute by key. Missing keys are silently ignored.
+
+        Args:
+            key: Attribute name to remove.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
         """
         self._attributes.pop(key, None)
         if key == "style":
@@ -419,11 +525,11 @@ class HTMLElement:
         return self
 
     def get_attribute(self, key: str) -> Union[str, None]:
-        """Gets an attribute from the current tag."""
+        """Return the value of a named attribute, or ``None`` if absent."""
         return self._attributes.get(key)
 
     def has_attribute(self, key: str) -> bool:
-        """Checks if an attribute exists in the current tag."""
+        """Return ``True`` if the given attribute is set on this element."""
         return key in self._attributes
 
     def _get_styles_dict(self) -> dict:
@@ -446,18 +552,24 @@ class HTMLElement:
                 self._attributes.pop("style", None)
 
     def add_style(self, key: str, value: str) -> "HTMLElement":
-        """
-        Adds a CSS style to the element's inline styles.
+        """Add a single inline CSS declaration to this element.
+
+        Values are checked for common injection patterns (``javascript:``,
+        ``expression(...)``, etc.) before being stored.
 
         Args:
-            key: CSS property name (e.g., 'color', 'font-size')
-            value: CSS property value (e.g., 'red', '14px')
+            key: CSS property name (e.g. ``"color"``, ``"font-size"``).
+            value: CSS property value (e.g. ``"red"``, ``"14px"``).
 
         Returns:
-            self for method chaining
+            This element, for chaining.
 
         Raises:
-            ValueError: If the CSS value contains potentially dangerous content
+            ValueError: If ``value`` contains potentially dangerous content.
+
+        Example:
+            >>> Div().add_style("color", "red").render()
+            '<div style="color: red"></div>'
         """
         if not _validate_css_value(str(value)):
             raise ValueError(
@@ -472,18 +584,20 @@ class HTMLElement:
         return self
 
     def add_styles(self, styles: dict) -> "HTMLElement":
-        """
-        Adds multiple CSS styles to the element's inline styles.
+        """Merge a dict of inline CSS declarations into this element.
+
+        Later keys overwrite earlier ones on the element. All values are
+        validated before any are stored.
 
         Args:
-            styles: Dictionary of CSS properties and values
-                   e.g., {"color": "red", "font-size": "14px"}
+            styles: Mapping of CSS property names to values, e.g.
+                ``{"color": "red", "font-size": "14px"}``.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
 
         Raises:
-            ValueError: If any CSS value contains potentially dangerous content
+            ValueError: If any value contains potentially dangerous content.
         """
         for key, value in styles.items():
             if not _validate_css_value(str(value)):
@@ -499,27 +613,29 @@ class HTMLElement:
         return self
 
     def get_style(self, key: str) -> Union[str, None]:
-        """
-        Gets a specific CSS style value from the element's inline styles.
+        """Return the inline CSS value for a property, or ``None`` if unset.
 
         Args:
-            key: CSS property name
+            key: CSS property name (e.g. ``"color"``).
 
         Returns:
-            The CSS property value or None if not found
+            The stored value, or ``None`` if this element has no such
+            inline declaration.
         """
         styles_dict = self._get_styles_dict()
         return styles_dict.get(key)
 
     def remove_style(self, key: str) -> "HTMLElement":
-        """
-        Removes a CSS style from the element's inline styles.
+        """Remove an inline CSS declaration by property name.
+
+        Missing keys are silently ignored. If this removes the last
+        declaration, the ``style`` attribute is dropped entirely.
 
         Args:
-            key: CSS property name to remove
+            key: CSS property name to remove.
 
         Returns:
-            self for method chaining
+            This element, for chaining.
         """
         styles_dict = self._get_styles_dict()
         styles_dict.pop(key, None)
@@ -582,16 +698,30 @@ class HTMLElement:
         return "; ".join(f"{k}: {v}" for k, v in styles_dict.items())
 
     def generate_id(self) -> None:
-        """Generates an id for the current tag if not already present."""
+        """Assign an auto-generated ``id`` attribute if one is not already set.
+
+        The id is ``"el-"`` followed by the first 6 hex characters of a
+        UUID4. Called automatically on construction when the
+        ``NITRO_UI_GENERATE_IDS`` environment variable is set.
+        """
         if "id" not in self._attributes:
             self._attributes["id"] = f"el-{str(uuid.uuid4())[:6]}"
 
     def clone(self) -> "HTMLElement":
-        """Clones the current tag."""
+        """Return a deep copy of this element and its entire subtree."""
         return copy.deepcopy(self)
 
     def replace_child(self, old_index: int, new_child: "HTMLElement") -> None:
-        """Replaces a existing child element with a new child element."""
+        """Swap a child at the given index with a new element.
+
+        Args:
+            old_index: Position of the child to replace.
+            new_child: Replacement element.
+
+        Raises:
+            ValueError: If ``new_child`` is not an ``HTMLElement``.
+            IndexError: If ``old_index`` is out of range.
+        """
         if not isinstance(new_child, HTMLElement):
             raise ValueError(
                 f"new_child must be an HTMLElement, got {type(new_child).__name__}"
@@ -604,18 +734,22 @@ class HTMLElement:
         attr_value: Any,
         max_depth: int = DEFAULT_MAX_DEPTH,
     ) -> Union["HTMLElement", None]:
-        """Finds a child by an attribute.
+        """Return the first descendant (or self) whose attribute matches.
+
+        Performs a depth-first search through the subtree; the current
+        element itself is checked before its children.
 
         Args:
-            attr_name: The attribute name to search for
-            attr_value: The attribute value to match
-            max_depth: Maximum recursion depth (default 1000) to prevent stack overflow
+            attr_name: Attribute name to look up on each visited element.
+            attr_value: Value to compare against; must match exactly.
+            max_depth: Traversal cutoff (default 1000) guarding against
+                circular references.
 
         Returns:
-            The matching element or None if not found
+            The first matching element, or ``None`` if no match is found.
 
         Raises:
-            RecursionError: If max_depth is exceeded
+            RecursionError: If ``max_depth`` is exceeded.
         """
 
         def _find(
@@ -639,33 +773,52 @@ class HTMLElement:
         return _find(self)
 
     def get_attributes(self, *keys: str) -> dict:
-        """Returns the attributes of the current tag."""
+        """Return a copy of attributes, optionally restricted to given keys.
+
+        Args:
+            *keys: If provided, the returned dict is limited to these keys;
+                missing keys map to ``None``. If omitted, all attributes
+                are returned.
+
+        Returns:
+            A new dict; mutating it does not affect the element.
+        """
         if keys:
             return {key: self._attributes.get(key) for key in keys}
         return self._attributes.copy()
 
     def count_children(self) -> int:
-        """Returns the number of children in the current tag."""
+        """Return the number of direct children (not including text content)."""
         return len(self._children)
 
     def on_load(self) -> None:
-        """Callback called when the tag is loaded."""
+        """Hook called at the end of ``__init__``. Override for custom setup."""
         pass
 
     def on_before_render(self) -> None:
-        """Callback called before the tag is rendered."""
+        """Hook called immediately before this element renders itself.
+
+        Override to mutate the tree right before serialization. Called by
+        ``render()`` on each invocation, including nested child renders.
+        """
         pass
 
     def on_after_render(self) -> None:
-        """Callback called after the tag is rendered."""
+        """Hook called immediately after this element finishes rendering."""
         pass
 
     def on_unload(self) -> None:
-        """Callback called when the tag is unloaded."""
+        """Hook called from ``__del__``. Do not rely on this for cleanup.
+
+        Python's garbage collector may skip ``__del__`` for objects
+        participating in reference cycles. Use explicit cleanup or context
+        managers for anything load-bearing.
+        """
         pass
 
     @property
     def tag(self) -> str:
+        """The HTML tag name (e.g. ``"div"``, ``"span"``)."""
         return self._tag
 
     @tag.setter
@@ -674,6 +827,11 @@ class HTMLElement:
 
     @property
     def children(self) -> List["HTMLElement"]:
+        """A shallow copy of the list of child elements.
+
+        The returned list can be mutated without affecting this element.
+        Assigning to this property replaces the internal child list.
+        """
         return list(self._children)
 
     @children.setter
@@ -682,6 +840,7 @@ class HTMLElement:
 
     @property
     def text(self) -> str:
+        """Text content of this element (already-joined, unescaped source)."""
         return self._text
 
     @text.setter
@@ -690,6 +849,7 @@ class HTMLElement:
 
     @property
     def attributes(self) -> dict:
+        """Live dict of attributes. Mutation invalidates the styles cache on assign."""
         return self._attributes
 
     @attributes.setter
@@ -699,6 +859,7 @@ class HTMLElement:
 
     @property
     def self_closing(self) -> bool:
+        """Whether this element renders as a void/self-closing tag."""
         return self._self_closing
 
     @self_closing.setter
@@ -754,19 +915,28 @@ class HTMLElement:
         _indent: int = 0,
         max_depth: int = DEFAULT_MAX_DEPTH,
     ) -> str:
-        """
-        Renders the HTML element and its children to a string.
+        """Serialize this element and its subtree to an HTML string.
+
+        Attribute values and text content are HTML-escaped. The opening
+        tag, attributes, children, and closing tag are emitted in order;
+        self-closing elements emit ``<tag />`` with no children.
 
         Args:
-            pretty: If True, renders with indentation and newlines for readability
-            _indent: Internal parameter for tracking indentation level
-            max_depth: Maximum recursion depth (default 1000) to prevent stack overflow
+            pretty: If ``True``, insert indentation and newlines for
+                human-readable output. Defaults to compact output.
+            max_depth: Traversal cutoff (default 1000) guarding against
+                circular references in the tree.
 
         Returns:
-            String representation of the HTML element
+            HTML representation of this element.
 
         Raises:
-            RecursionError: If max_depth is exceeded (likely circular reference)
+            RecursionError: If ``max_depth`` is exceeded - usually a sign
+                of a circular reference rather than legitimate depth.
+
+        Example:
+            >>> Div(Paragraph("Hi"), class_name="card").render()
+            '<div class="card"><p>Hi</p></div>'
         """
         if _indent > max_depth:
             raise RecursionError(
@@ -829,17 +999,21 @@ class HTMLElement:
         _depth: int = 0,
         max_depth: int = DEFAULT_MAX_DEPTH,
     ) -> dict:
-        """Serialize the element to a dictionary.
+        """Serialize this element and its subtree to a plain dict.
+
+        The returned dict has keys ``tag``, ``self_closing``,
+        ``attributes``, ``text``, and ``children`` (recursively). It is
+        JSON-safe and round-trips via ``from_dict()``.
 
         Args:
-            _depth: Internal parameter for tracking recursion depth
-            max_depth: Maximum recursion depth (default 1000)
+            max_depth: Traversal cutoff (default 1000) guarding against
+                circular references.
 
         Returns:
-            Dictionary representation of the element
+            Dict representation of the element.
 
         Raises:
-            RecursionError: If max_depth is exceeded
+            RecursionError: If ``max_depth`` is exceeded.
         """
         if _depth > max_depth:
             raise RecursionError(
@@ -858,14 +1032,14 @@ class HTMLElement:
         }
 
     def to_json(self, indent: Union[int, None] = None) -> str:
-        """
-        Serializes the element and its children to a JSON string.
+        """Serialize this element and its subtree to a JSON string.
 
         Args:
-            indent: Number of spaces for JSON indentation (None for compact output)
+            indent: Spaces for pretty-printed JSON, or ``None`` for compact
+                single-line output.
 
         Returns:
-            JSON string representation of the element
+            JSON representation; pair with ``from_json()`` to round-trip.
         """
         return json.dumps(self.to_dict(), indent=indent)
 
@@ -876,20 +1050,23 @@ class HTMLElement:
         _depth: int = 0,
         max_depth: int = DEFAULT_MAX_DEPTH,
     ) -> "HTMLElement":
-        """
-        Reconstructs an HTMLElement from a dictionary.
+        """Reconstruct an element tree from a ``to_dict()`` result.
+
+        Uses the tag registry populated by the tag factory to instantiate
+        the most specific subclass for each tag, so ``Fragment``,
+        ``Table``, ``Form``, etc. round-trip as their real types.
 
         Args:
-            data: Dictionary containing element data (from to_dict())
-            _depth: Internal parameter for tracking recursion depth
-            max_depth: Maximum recursion depth (default 1000)
+            data: Dict produced by ``to_dict()``.
+            max_depth: Traversal cutoff (default 1000).
 
         Returns:
-            Reconstructed HTMLElement instance
+            Reconstructed ``HTMLElement`` (or subclass matching ``tag``).
 
         Raises:
-            ValueError: If input data is invalid
-            RecursionError: If max_depth is exceeded
+            ValueError: If ``data`` is not a dict, is missing ``tag``, or
+                has a field with the wrong type.
+            RecursionError: If ``max_depth`` is exceeded.
         """
         if not isinstance(data, dict):
             raise ValueError("Input must be a dictionary")
@@ -966,14 +1143,17 @@ class HTMLElement:
 
     @classmethod
     def from_json(cls, json_str: str) -> "HTMLElement":
-        """
-        Reconstructs an HTMLElement from a JSON string.
+        """Reconstruct an element tree from a ``to_json()`` result.
 
         Args:
-            json_str: JSON string representation (from to_json())
+            json_str: JSON previously produced by ``to_json()``.
 
         Returns:
-            Reconstructed HTMLElement instance
+            Reconstructed ``HTMLElement`` (or registered subclass).
+
+        Raises:
+            ValueError: If the string is not valid JSON or the decoded
+                payload is not a valid element dict.
         """
         try:
             data = json.loads(json_str)

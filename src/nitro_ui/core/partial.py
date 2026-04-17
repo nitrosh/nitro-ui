@@ -59,7 +59,11 @@ class Partial(HTMLElement):
         return result
 
     def to_dict(self) -> dict:
-        """Serializes the Partial to a dictionary."""
+        """Return a dict with ``type="partial"`` plus the source marker.
+
+        Either the inline ``html`` string or the ``file`` path is stored
+        - whichever was provided at construction time.
+        """
         result = {"type": "partial"}
         if self._html is not None:
             result["html"] = self._html
@@ -68,21 +72,30 @@ class Partial(HTMLElement):
         return result
 
     def to_json(self, indent: int = None) -> str:
-        """Serializes the Partial to a JSON string."""
+        """Serialize this Partial to a JSON string.
+
+        Args:
+            indent: Spaces for pretty-printed JSON, or ``None`` for
+                compact output.
+        """
         import json
 
         return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
     def from_dict(cls, data: dict) -> "Partial":
-        """Reconstructs a Partial from a dictionary."""
+        """Reconstruct a ``Partial`` from a ``to_dict()`` result.
+
+        Raises:
+            ValueError: If ``data["type"]`` is not ``"partial"``.
+        """
         if data.get("type") != "partial":
             raise ValueError("Not a Partial element")
         return cls(html=data.get("html"), file=data.get("file"))
 
     @classmethod
     def from_json(cls, json_str: str) -> "Partial":
-        """Reconstructs a Partial from a JSON string."""
+        """Reconstruct a ``Partial`` from a ``to_json()`` result."""
         import json
 
         data = json.loads(json_str)

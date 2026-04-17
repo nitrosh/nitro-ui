@@ -7,40 +7,39 @@ from nitro_ui.core.element import _validate_css_value
 
 
 class CSSStyle:
-    """
-    Represents CSS styles with support for pseudo-selectors and responsive breakpoints.
+    """Declarative CSS style with pseudo-selector and breakpoint support.
 
-    Usage:
-        # Basic styles
-        style = CSSStyle(
-            background_color="#007bff",
-            color="white",
-            padding="10px 20px"
-        )
+    Instances capture a set of base CSS declarations plus nested
+    ``CSSStyle`` objects for pseudo-selectors (``:hover``, ``:active``,
+    ...) and responsive breakpoints (``sm``, ``md``, ``lg``, ...).
+    Property names are written in snake_case; they are converted to
+    kebab-case at emit time.
 
-        # With pseudo-selectors
-        style = CSSStyle(
-            background_color="#007bff",
-            _hover=CSSStyle(background_color="#0056b3"),
-            _active=CSSStyle(transform="scale(0.98)")
-        )
-
-        # With responsive breakpoints
-        style = CSSStyle(
-            padding="10px",
-            _sm=CSSStyle(padding="15px"),
-            _md=CSSStyle(padding="20px")
-        )
+    Example:
+        >>> style = CSSStyle(
+        ...     background_color="#007bff",
+        ...     color="white",
+        ...     _hover=CSSStyle(background_color="#0056b3"),
+        ...     _md=CSSStyle(padding="20px"),
+        ... )
+        >>> style.to_inline()
+        'background-color: #007bff; color: white'
     """
 
     def __init__(self, **kwargs):
-        """
-        Initialize a CSSStyle object.
+        """Create a CSSStyle from keyword arguments.
 
         Args:
-            **kwargs: CSS properties as keyword arguments. Use underscores for hyphens.
-                     Pseudo-selectors start with underscore (e.g., _hover, _active)
-                     Breakpoints start with underscore (e.g., _sm, _md, _lg)
+            **kwargs: CSS declarations as ``property=value`` pairs.
+                Underscores in names become hyphens
+                (``background_color`` -> ``background-color``). Values
+                starting with an underscore and assigned a ``CSSStyle``
+                are routed to the pseudo-selector or breakpoint maps:
+                ``_hover``, ``_active``, ``_focus``, ``_visited``,
+                ``_link``, ``_first_child``, ``_last_child``,
+                ``_nth_child``, ``_before``, ``_after``, plus
+                breakpoints ``_xs``, ``_sm``, ``_md``, ``_lg``, ``_xl``,
+                ``_2xl``.
         """
         self._styles: Dict[str, str] = {}
         self._pseudo: Dict[str, "CSSStyle"] = {}
@@ -84,16 +83,17 @@ class CSSStyle:
         return prop.replace("_", "-")
 
     def merge(self, other: "CSSStyle") -> "CSSStyle":
-        """
-        Merge another CSSStyle object into this one, returning a new CSSStyle.
-        The other style's properties will override this one's.
-        Pseudo-selectors and breakpoints are deep-merged at the property level.
+        """Combine another style into a new ``CSSStyle`` without mutating either.
+
+        Values from ``other`` win on conflict. Pseudo-selectors and
+        breakpoints are deep-merged recursively, so an ``_hover`` on
+        either side survives.
 
         Args:
-            other: Another CSSStyle object to merge
+            other: Style whose declarations overlay this one.
 
         Returns:
-            New CSSStyle object with merged properties
+            A new ``CSSStyle`` with the merged content.
         """
         merged = CSSStyle()
         merged._styles = {**self._styles, **other._styles}
@@ -124,16 +124,19 @@ class CSSStyle:
         return merged
 
     def to_inline(self) -> str:
-        """
-        Generate inline style string (for style="..." attribute).
-        Note: This only includes base styles, not pseudo-selectors or breakpoints.
-        Values are validated against CSS injection patterns.
+        """Render the base declarations as a single ``style`` attribute value.
+
+        Only the base declarations are emitted - pseudo-selectors and
+        breakpoints cannot be expressed inline and require a stylesheet.
+        Values are validated against the same injection patterns
+        enforced by ``HTMLElement.add_style``.
 
         Returns:
-            CSS string suitable for inline styles
+            A string like ``"color: red; padding: 10px"``, or an empty
+            string if no base declarations are set.
 
         Raises:
-            ValueError: If any CSS value contains dangerous content
+            ValueError: If any value contains potentially dangerous content.
         """
         if not self._styles:
             return ""
@@ -147,11 +150,13 @@ class CSSStyle:
         return "; ".join(f"{k}: {v}" for k, v in self._styles.items())
 
     def to_dict(self) -> Dict[str, Any]:
-        """
-        Serialize to JSON-compatible dictionary.
+        """Serialize this style (including nested pseudo/breakpoint maps) to a dict.
+
+        The output is JSON-safe and round-trips via ``from_dict()``.
 
         Returns:
-            Dictionary representation of the style
+            A dict with keys ``styles``, optionally ``pseudo`` and
+            ``breakpoints`` holding nested ``CSSStyle.to_dict()`` output.
         """
         result: Dict[str, Any] = {"styles": self._styles.copy()}
 
@@ -167,14 +172,13 @@ class CSSStyle:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CSSStyle":
-        """
-        Deserialize from dictionary.
+        """Reconstruct a ``CSSStyle`` from a ``to_dict()`` result.
 
         Args:
-            data: Dictionary representation from to_dict()
+            data: Dict previously produced by ``to_dict()``.
 
         Returns:
-            New CSSStyle object
+            A new ``CSSStyle`` equivalent to the serialized one.
         """
         style = cls()
         style._styles = dict(data.get("styles", {}))
@@ -190,34 +194,32 @@ class CSSStyle:
         return style
 
     def has_pseudo_or_breakpoints(self) -> bool:
-        """
-        Check if this style has pseudo-selectors or breakpoints.
-        Useful for deciding whether to extract to external stylesheet.
+        """Return ``True`` if this style carries any pseudo-selector or breakpoint.
 
-        Returns:
-            True if style has pseudo-selectors or breakpoints
+        Inline ``style="..."`` can't express pseudo-selectors or media
+        queries, so this is a useful signal for deciding whether the
+        style must be registered on a ``StyleSheet``.
         """
         return bool(self._pseudo or self._breakpoints)
 
     def is_complex(self, threshold: int = 3) -> bool:
-        """
-        Check if this style is complex (has many properties).
-        Useful for deciding whether to extract to external stylesheet.
+        """Return ``True`` when the base declaration count exceeds a threshold.
+
+        Useful alongside ``has_pseudo_or_breakpoints`` to decide whether
+        a given style is better off in an external stylesheet.
 
         Args:
-            threshold: Number of properties to consider complex
-
-        Returns:
-            True if style has more properties than threshold
+            threshold: Maximum number of declarations considered simple;
+                the style is "complex" when it has strictly more.
         """
         return len(self._styles) > threshold
 
     def __repr__(self) -> str:
-        """String representation for debugging."""
+        """Return a debug representation showing the inline form."""
         return f"CSSStyle({self.to_inline()})"
 
     def __eq__(self, other: object) -> bool:
-        """Check equality with another CSSStyle."""
+        """Return ``True`` if both styles have identical base, pseudo, and breakpoint maps."""
         if not isinstance(other, CSSStyle):
             return False
         return (
@@ -227,7 +229,7 @@ class CSSStyle:
         )
 
     def __hash__(self) -> int:
-        """Make CSSStyle hashable for use in dictionaries."""
+        """Return a stable hash based on declarations and pseudo/breakpoint keys."""
         styles_tuple = tuple(sorted(self._styles.items()))
         # Include pseudo and breakpoint keys in hash for better distribution
         pseudo_keys = tuple(sorted(self._pseudo.keys()))

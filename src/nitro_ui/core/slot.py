@@ -54,6 +54,9 @@ class Slot(HTMLElement):
     def render(
         self, pretty: bool = False, _indent: int = 0, max_depth: int = 1000
     ) -> str:
-        """Slots should never render directly - they get replaced by Component."""
-        # Return empty string if somehow rendered directly
+        """Return an empty string - ``Component`` replaces slots before render.
+
+        This safety net keeps output clean if a ``Slot`` escapes the
+        component machinery. It should never be called during normal use.
+        """
         return ""

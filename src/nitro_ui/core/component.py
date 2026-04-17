@@ -233,10 +233,17 @@ class Component(HTMLElement):
         return result
 
     def template(self) -> List[Any]:
-        """Override to define the component structure.
+        """Override to define this component's structure.
+
+        The method's parameters become declared props: when a caller
+        instantiates the component, non-element positional arguments and
+        matching keyword arguments are routed here. ``Slot()`` markers in
+        the returned tree are replaced with child content; named slots
+        are filled from kwargs of the same name.
 
         Returns:
-            List of HTMLElement instances and/or Slot markers.
-            Use Slot() for default slot, Slot("name") for named slots.
+            A list of ``HTMLElement`` instances and/or ``Slot`` markers
+            that describe the rendered output. Use ``Slot()`` for the
+            default slot and ``Slot("name")`` for named slots.
         """
         return [Slot()]
