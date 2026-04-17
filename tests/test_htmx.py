@@ -1,6 +1,6 @@
 import unittest
 
-from nitro_ui import Button, Div, Form, Input, Span
+from nitro_ui import Button, Div, Form, Input
 from nitro_ui.tags.text import Href
 
 

@@ -118,7 +118,10 @@ class TestLayoutTags(unittest.TestCase):
         details = Details(
             Summary("More information"), Paragraph("This is the hidden content")
         )
-        expected = "<details><summary>More information</summary><p>This is the hidden content</p></details>"
+        expected = (
+            "<details><summary>More information</summary>"
+            "<p>This is the hidden content</p></details>"
+        )
         self.assertEqual(str(details), expected)
 
     def test_dialog(self):

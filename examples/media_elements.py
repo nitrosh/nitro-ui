@@ -236,7 +236,7 @@ def embed_and_object():
         Param(name="quality", value="high"),
         Paragraph(
             "Flash content not supported. ",
-            Link("Download instead", href="/files/animation.swf"),
+            Anchor("Download instead", href="/files/animation.swf"),
         ),
         data="/flash/animation.swf",
         type="application/x-shockwave-flash",

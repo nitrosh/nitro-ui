@@ -56,7 +56,8 @@ class TestComponentBasic(unittest.TestCase):
         result = Card("My Title", Paragraph("Content"))
         self.assertEqual(
             str(result),
-            '<div class="card"><h3 class="card-title">My Title</h3><p>Content</p></div>',
+            '<div class="card"><h3 class="card-title">My Title</h3>'
+            "<p>Content</p></div>",
         )
 
     def test_component_prop_with_default(self):

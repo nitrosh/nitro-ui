@@ -32,16 +32,16 @@ def document_structure():
             Meta(charset="utf-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             Meta(name="description", content="A website built with NitroUI"),
-            HtmlLink(rel="stylesheet", href="/css/styles.css"),
-            HtmlLink(rel="icon", href="/favicon.ico"),
+            Link(rel="stylesheet", href="/css/styles.css"),
+            Link(rel="icon", href="/favicon.ico"),
             Script(src="/js/main.js", defer="true"),
         ),
         Body(
             Header(
                 Nav(
-                    Link("Home", href="/"),
-                    Link("About", href="/about"),
-                    Link("Contact", href="/contact"),
+                    Anchor("Home", href="/"),
+                    Anchor("About", href="/about"),
+                    Anchor("Contact", href="/contact"),
                 )
             ),
             Main(H1("Welcome"), Paragraph("This is the main content area.")),
@@ -77,7 +77,7 @@ def text_elements():
             ", ",
             Ins("inserted text"),
             ", and ",
-            Link("hyperlinks", href="https://example.com"),
+            Anchor("hyperlinks", href="https://example.com"),
             ".",
         ),
         Blockquote(
@@ -106,9 +106,9 @@ def layout_elements():
         Header(
             H1("Site Title"),
             Nav(
-                Link("Home", href="/"),
-                Link("Products", href="/products"),
-                Link("About", href="/about"),
+                Anchor("Home", href="/"),
+                Anchor("Products", href="/products"),
+                Anchor("About", href="/about"),
             ),
         ),
         Main(
@@ -129,9 +129,9 @@ def layout_elements():
             Aside(
                 H3("Related Links"),
                 UnorderedList(
-                    ListItem(Link("Link 1", href="#")),
-                    ListItem(Link("Link 2", href="#")),
-                    ListItem(Link("Link 3", href="#")),
+                    ListItem(Anchor("Link 1", href="#")),
+                    ListItem(Anchor("Link 2", href="#")),
+                    ListItem(Anchor("Link 3", href="#")),
                 ),
             ),
         ),
@@ -230,9 +230,9 @@ def conditional_rendering():
     if user["is_admin"]:
         header.append(
             Nav(
-                Link("Dashboard", href="/dashboard"),
-                Link("Users", href="/users"),
-                Link("Settings", href="/settings"),
+                Anchor("Dashboard", href="/dashboard"),
+                Anchor("Users", href="/users"),
+                Anchor("Settings", href="/settings"),
                 class_name="admin-nav",
             )
         )

@@ -23,7 +23,7 @@ def base_layout(title, *content):
             Title(title),
             Meta(charset="utf-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
-            HtmlLink(rel="stylesheet", href="/static/styles.css"),
+            Link(rel="stylesheet", href="/static/styles.css"),
             Style(
                 """
                 body { font-family: system-ui, sans-serif; margin: 0; padding: 0; }
@@ -36,9 +36,9 @@ def base_layout(title, *content):
         ),
         Body(
             Nav(
-                Link("Home", href="/", class_name="nav-link"),
-                Link("Users", href="/users", class_name="nav-link"),
-                Link("API", href="/api/status", class_name="nav-link"),
+                Anchor("Home", href="/", class_name="nav-link"),
+                Anchor("Users", href="/users", class_name="nav-link"),
+                Anchor("API", href="/api/status", class_name="nav-link"),
                 class_name="nav",
             ),
             Main(Div(*content, class_name="container")),
@@ -53,7 +53,7 @@ def user_card(user):
         H3(user["name"]),
         Paragraph(f"Email: {user['email']}"),
         Paragraph(f"Role: {user['role']}"),
-        Link("View Profile", href=f"/users/{user['id']}"),
+        Anchor("View Profile", href=f"/users/{user['id']}"),
         class_name="card",
     )
 
@@ -65,7 +65,7 @@ def error_page(code, message):
         Div(
             H1(f"Error {code}"),
             Paragraph(message),
-            Link("Go Home", href="/"),
+            Anchor("Go Home", href="/"),
             class_name="error-page",
         ),
     )
@@ -101,7 +101,7 @@ async def home():
         Body(
             H1("Welcome to FastAPI + NitroUI"),
             Paragraph("Build HTML with Python, not templates."),
-            Link("View Users", href="/users")
+            Anchor("View Users", href="/users")
         )
     )
     return page.render()
@@ -119,7 +119,7 @@ async def list_users():
                     Div(
                         H3(user["name"]),
                         Paragraph(f"Email: {user['email']}"),
-                        Link("View", href=f"/users/{user['id']}"),
+                        Anchor("View", href=f"/users/{user['id']}"),
                         class_name="card"
                     )
                     for user in users_db
@@ -150,7 +150,7 @@ async def get_user(user_id: int):
             H1(user["name"]),
             Paragraph(f"Email: {user['email']}"),
             Paragraph(f"Role: {user['role']}"),
-            Link("Back to Users", href="/users")
+            Anchor("Back to Users", href="/users")
         )
     )
     return page.render()
@@ -197,14 +197,14 @@ def layout(title, *content):
         Head(
             Title(title),
             Meta(charset="utf-8"),
-            HtmlLink(rel="stylesheet", href="/static/style.css")
+            Link(rel="stylesheet", href="/static/style.css")
         ),
         Body(
             Header(
                 Nav(
-                    Link("Home", href="/"),
-                    Link("Products", href="/products"),
-                    Link("About", href="/about")
+                    Anchor("Home", href="/"),
+                    Anchor("Products", href="/products"),
+                    Anchor("About", href="/about")
                 )
             ),
             Main(*content),
@@ -240,7 +240,7 @@ def list_products():
                     TableRow(
                         TableDataCell(p["name"]),
                         TableDataCell(f"${p['price']:.2f}"),
-                        TableDataCell(Link("View", href=f"/products/{p['id']}"))
+                        TableDataCell(Anchor("View", href=f"/products/{p['id']}"))
                     )
                     for p in products
                 ]
@@ -260,7 +260,7 @@ def get_product(product_id):
         product["name"],
         H1(product["name"]),
         Paragraph(f"Price: ${product['price']:.2f}"),
-        Link("Back to Products", href="/products")
+        Anchor("Back to Products", href="/products")
     )
 
 
@@ -270,7 +270,7 @@ def not_found(error):
         "Not Found",
         H1("404 - Page Not Found"),
         Paragraph("The page you requested could not be found."),
-        Link("Go Home", href="/")
+        Anchor("Go Home", href="/")
     ), 404
 
 
@@ -305,14 +305,14 @@ def layout(title, *content):
             Meta(charset="utf-8"),
             Meta(name="viewport", content="width=device-width, initial-scale=1.0"),
             # Django static files
-            HtmlLink(rel="stylesheet", href="/static/css/styles.css")
+            Link(rel="stylesheet", href="/static/css/styles.css")
         ),
         Body(
             Header(
                 Nav(
-                    Link("Home", href="/"),
-                    Link("Articles", href="/articles/"),
-                    Link("Contact", href="/contact/")
+                    Anchor("Home", href="/"),
+                    Anchor("Articles", href="/articles/"),
+                    Anchor("Contact", href="/contact/")
                 )
             ),
             Main(Div(*content, class_name="container")),
@@ -343,7 +343,7 @@ def article_list(request):
         Div(
             *[
                 Article(
-                    H2(Link(a.title, href=f"/articles/{a.id}/")),
+                    H2(Anchor(a.title, href=f"/articles/{a.id}/")),
                     Paragraph(a.excerpt),
                     Small(f"Published: {a.published_date}")
                 )
@@ -369,7 +369,7 @@ class ArticleDetailView(View):
                 H1(article.title),
                 Paragraph(article.content),
                 Small(f"By {article.author} on {article.published_date}"),
-                Link("Back to Articles", href="/articles/")
+                Anchor("Back to Articles", href="/articles/")
             )
         )
         return HttpResponse(page.render())
@@ -469,7 +469,7 @@ async def user_page(request):
     html = layout(
         f"User {user_id}",
         H1(f"User Profile: {user_id}"),
-        Link("Back", href="/")
+        Anchor("Back", href="/")
     )
     return HTMLResponse(html)
 
@@ -479,7 +479,7 @@ async def not_found(request, exc):
         "Not Found",
         H1("404 - Not Found"),
         Paragraph("Page does not exist."),
-        Link("Home", href="/")
+        Anchor("Home", href="/")
     )
     return HTMLResponse(html, status_code=404)
 
@@ -682,7 +682,7 @@ async def embed_product(product_id: int):
     widget = Div(
         H3(product["name"]),
         Paragraph(f"${product['price']:.2f}"),
-        Link("Buy Now", href=f"https://yoursite.com/products/{product_id}"),
+        Anchor("Buy Now", href=f"https://yoursite.com/products/{product_id}"),
         class_name="product-widget"
     ).add_styles({
         "border": "1px solid #ddd",
@@ -712,7 +712,7 @@ async def welcome_email(user_id: int):
                         H1("Welcome, " + user["name"] + "!"),
                         Paragraph("Thanks for signing up."),
                         Paragraph("Click below to get started:"),
-                        Link(
+                        Anchor(
                             "Get Started",
                             href="https://yoursite.com/onboard"
                         ).add_styles({

@@ -90,11 +90,11 @@ def chaining_children():
     nav = (
         Nav()
         .add_attribute("class", "main-nav")
-        .append(Link("Home", href="/"))
-        .append(Link("Products", href="/products"))
-        .append(Link("Services", href="/services"))
-        .append(Link("About", href="/about"))
-        .append(Link("Contact", href="/contact"))
+        .append(Anchor("Home", href="/"))
+        .append(Anchor("Products", href="/products"))
+        .append(Anchor("Services", href="/services"))
+        .append(Anchor("About", href="/about"))
+        .append(Anchor("Contact", href="/contact"))
     )
 
     print("Navigation built with chained appends:")
@@ -212,8 +212,8 @@ def conditional_chaining():
     if is_admin:
         header.append(
             Nav(
-                Link("Users", href="/admin/users"),
-                Link("Settings", href="/admin/settings"),
+                Anchor("Users", href="/admin/users"),
+                Anchor("Settings", href="/admin/settings"),
                 class_name="admin-nav",
             )
         )

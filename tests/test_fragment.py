@@ -40,7 +40,10 @@ class TestFragment(unittest.TestCase):
         )
 
         rendered = str(fragment)
-        expected = "<h1>Header</h1><p>Paragraph 1</p><p>Paragraph 2</p><span>Inline text</span>"
+        expected = (
+            "<h1>Header</h1><p>Paragraph 1</p>"
+            "<p>Paragraph 2</p><span>Inline text</span>"
+        )
         self.assertEqual(rendered, expected)
 
     def test_fragment_nested_elements(self):
