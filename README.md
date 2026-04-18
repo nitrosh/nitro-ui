@@ -4,6 +4,11 @@
 
 NitroUI is a zero-dependency Python library that lets you construct HTML documents using a clean, composable class-based API. No template files, no string concatenation, no runtime dependencies.
 
+[![PyPI](https://img.shields.io/pypi/v/nitro-ui?color=green)](https://pypi.org/project/nitro-ui/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/nitro-ui)](https://pypi.org/project/nitro-ui/)
+[![PyPI - License](https://img.shields.io/pypi/l/nitro-ui)](https://pypi.org/project/nitro-ui/)
+[![image](https://img.shields.io/github/actions/workflow/status/nitrosh/nitro-ui/test.yml?branch=main)](https://github.com/nitrosh/nitro-ui/actions?query=branch%3Amain)
+
 ```python
 from nitro_ui import *
 
