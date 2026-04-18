@@ -9,6 +9,12 @@ NitroUI is a zero-dependency Python library that lets you construct HTML documen
 [![PyPI - License](https://img.shields.io/pypi/l/nitro-ui)](https://pypi.org/project/nitro-ui/)
 [![image](https://img.shields.io/github/actions/workflow/status/nitrosh/nitro-ui/test.yml?branch=main)](https://github.com/nitrosh/nitro-ui/actions?query=branch%3Amain)
 
+## Installation
+
+```bash
+pip install nitro-ui
+```
+
 ```python
 from nitro_ui import *
 
@@ -42,12 +48,6 @@ print(page.render(pretty=True))
 - **Secure by default**: Automatic HTML escaping, CSS injection prevention, tag/attribute validation
 - **SVG-aware**: Correct camelCase attribute handling for SVG elements
 - **LLM-friendly**: Perfect for AI-generated interfaces
-
-## Installation
-
-```bash
-pip install nitro-ui
-```
 
 ### AI Assistant Integration
 
