@@ -15,6 +15,18 @@ NitroUI is a zero-dependency Python library that lets you construct HTML documen
 pip install nitro-ui
 ```
 
+### AI Assistant Integration
+
+Add NitroUI knowledge to your AI coding assistant:
+
+```bash
+npx skills add nitrosh/nitro-ui
+```
+
+This enables AI assistants like Claude Code to understand NitroUI and generate correct HTML code.
+
+## Quick Examples
+
 ```python
 from nitro_ui import *
 
@@ -48,18 +60,6 @@ print(page.render(pretty=True))
 - **Secure by default**: Automatic HTML escaping, CSS injection prevention, tag/attribute validation
 - **SVG-aware**: Correct camelCase attribute handling for SVG elements
 - **LLM-friendly**: Perfect for AI-generated interfaces
-
-### AI Assistant Integration
-
-Add NitroUI knowledge to your AI coding assistant:
-
-```bash
-npx skills add nitrosh/nitro-ui
-```
-
-This enables AI assistants like Claude Code to understand NitroUI and generate correct HTML code.
-
-## Quick Examples
 
 ### Dynamic Content
 
