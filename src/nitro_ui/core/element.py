@@ -823,6 +823,14 @@ class HTMLElement:
 
     @tag.setter
     def tag(self, value: str) -> None:
+        if not value:
+            raise ValueError("A valid HTML tag name is required")
+        if not _VALID_TAG_PATTERN.match(value):
+            raise ValueError(
+                f"Invalid HTML tag name: {value!r}. "
+                "Tag names must start with a letter and contain only "
+                "letters, digits, and hyphens."
+            )
         self._tag = value
 
     @property

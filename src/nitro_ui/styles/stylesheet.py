@@ -14,6 +14,46 @@ if TYPE_CHECKING:
 # followed by letters, digits, underscores, or hyphens
 _VALID_CLASS_NAME_PATTERN = re.compile(r"^-?[_a-zA-Z][_a-zA-Z0-9-]*$")
 
+# Valid CSS property name pattern: a standard ident, or a CSS custom property
+# (``--name``). Blocks at-rules, braces, semicolons, and whitespace from being
+# smuggled in via dict keys (e.g. ``"@import url(evil); color"``).
+_VALID_CSS_PROPERTY_PATTERN = re.compile(r"^(--)?[a-zA-Z][a-zA-Z0-9-]*$")
+
+
+def _validate_css_property(name: str) -> bool:
+    """Validate that a CSS property name is safe for CSS output.
+
+    Args:
+        name: The CSS property name to validate.
+
+    Returns:
+        True if valid, False otherwise.
+    """
+    if not name or not isinstance(name, str):
+        return False
+    return bool(_VALID_CSS_PROPERTY_PATTERN.match(name))
+
+
+def _sanitize_css_property(name: str) -> str:
+    """Return ``name`` if it is a valid CSS property, else raise.
+
+    Args:
+        name: The CSS property name to validate.
+
+    Returns:
+        The property name unchanged.
+
+    Raises:
+        ValueError: If ``name`` is not a valid CSS identifier.
+    """
+    if not _validate_css_property(name):
+        raise ValueError(
+            f"Invalid CSS property name: {name!r}. Property names must be "
+            "a standard CSS identifier (letters, digits, hyphens) or a "
+            "custom property starting with '--'."
+        )
+    return name
+
 
 def _validate_class_name(name: str) -> bool:
     """Validate that a class name is safe for CSS output.
@@ -239,8 +279,9 @@ class StyleSheet:
         if style._styles:
             css_lines.append(f".{class_name} {{")
             for prop, value in style._styles.items():
+                sanitized_prop = _sanitize_css_property(prop)
                 sanitized_value = _sanitize_css_value(value)
-                css_lines.append(f"{indent_str}{prop}: {sanitized_value};")
+                css_lines.append(f"{indent_str}{sanitized_prop}: {sanitized_value};")
             css_lines.append("}")
 
         # Pseudo-selectors
@@ -248,8 +289,11 @@ class StyleSheet:
             if pseudo_style._styles:
                 css_lines.append(f".{class_name}:{pseudo} {{")
                 for prop, value in pseudo_style._styles.items():
+                    sanitized_prop = _sanitize_css_property(prop)
                     sanitized_value = _sanitize_css_value(value)
-                    css_lines.append(f"{indent_str}{prop}: {sanitized_value};")
+                    css_lines.append(
+                        f"{indent_str}{sanitized_prop}: {sanitized_value};"
+                    )
                 css_lines.append("}")
 
         # Responsive breakpoints
@@ -259,9 +303,10 @@ class StyleSheet:
                 css_lines.append(f"@media (min-width: {min_width}) {{")
                 css_lines.append(f"{indent_str}.{class_name} {{")
                 for prop, value in bp_style._styles.items():
+                    sanitized_prop = _sanitize_css_property(prop)
                     sanitized_value = _sanitize_css_value(value)
                     css_lines.append(
-                        f"{indent_str}{indent_str}{prop}: {sanitized_value};"
+                        f"{indent_str}{indent_str}{sanitized_prop}: {sanitized_value};"
                     )
                 css_lines.append(f"{indent_str}}}")
                 css_lines.append("}")
