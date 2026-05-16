@@ -1,9 +1,15 @@
 """CSS Style class for NitroUI."""
 
 import copy
+import re
 from typing import Dict, Any
 
 from nitro_ui.core.element import _validate_css_value
+
+# Valid CSS property name: standard ident or a custom property (``--name``).
+# Mirrors the pattern enforced in ``stylesheet.py`` so untrusted dicts can't
+# smuggle at-rules or brace sequences in through property keys.
+_VALID_CSS_PROPERTY_PATTERN = re.compile(r"^(--)?[a-zA-Z][a-zA-Z0-9-]*$")
 
 
 class CSSStyle:
@@ -141,6 +147,12 @@ class CSSStyle:
         if not self._styles:
             return ""
         for key, value in self._styles.items():
+            if not _VALID_CSS_PROPERTY_PATTERN.match(key):
+                raise ValueError(
+                    f"Invalid CSS property name: {key!r}. Property names "
+                    "must be a standard CSS identifier or a custom property "
+                    "starting with '--'."
+                )
             if not _validate_css_value(str(value)):
                 raise ValueError(
                     f"CSS value for '{key}' contains potentially dangerous content: "
@@ -179,9 +191,19 @@ class CSSStyle:
 
         Returns:
             A new ``CSSStyle`` equivalent to the serialized one.
+
+        Raises:
+            ValueError: If any property name in ``data["styles"]`` is not
+                a valid CSS identifier.
         """
         style = cls()
-        style._styles = dict(data.get("styles", {}))
+        raw_styles = dict(data.get("styles", {}))
+        for key in raw_styles:
+            if not _VALID_CSS_PROPERTY_PATTERN.match(key):
+                raise ValueError(
+                    f"Invalid CSS property name in serialized data: {key!r}."
+                )
+        style._styles = raw_styles
 
         if "pseudo" in data:
             for key, value in data["pseudo"].items():

@@ -1,8 +1,15 @@
 """Theme class for NitroUI styling system."""
 
+import re
 from typing import Dict, Optional, Any
 
+from nitro_ui.core.element import _validate_css_value
 from .style import CSSStyle
+
+# Token names (color/spacing/typography keys) become part of the CSS variable
+# identifier, so they must be safe to splice between ``--<group>-`` and the
+# next character. Letters, digits, underscores, and hyphens only.
+_VALID_TOKEN_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 class Theme:
@@ -54,31 +61,62 @@ class Theme:
         """Flatten colors, spacing, and typography into CSS custom properties.
 
         Called by ``StyleSheet.render()`` when a theme is attached, so
-        every variable lands in the ``:root {}`` block.
+        every variable lands in the ``:root {}`` block. Token names and
+        values are validated to prevent breaking out of the ``:root``
+        declaration via braces, semicolons, or at-rules.
 
         Returns:
             A dict mapping variable names (``--color-primary``,
             ``--spacing-md``, ``--font-body``, ...) to their values.
+
+        Raises:
+            ValueError: If a token name contains characters that aren't
+                safe in a CSS identifier, or a value contains injection
+                patterns (``javascript:``, ``expression()``, braces, etc.).
         """
-        variables = {}
 
-        # Color variables
+        def safe_key(group: str, key: str) -> str:
+            if not isinstance(key, str) or not _VALID_TOKEN_NAME_PATTERN.match(key):
+                raise ValueError(
+                    f"Invalid theme {group} token name: {key!r}. Token names "
+                    "must contain only letters, digits, underscores, or hyphens."
+                )
+            return key
+
+        def safe_value(var_name: str, value: Any) -> str:
+            text = str(value)
+            if not _validate_css_value(text):
+                raise ValueError(
+                    f"Theme variable {var_name!r} contains potentially "
+                    f"dangerous content: {text!r}. Values cannot contain "
+                    "javascript:, expression(), braces, or other injection "
+                    "patterns."
+                )
+            return text
+
+        variables: Dict[str, str] = {}
+
         for key, value in self.colors.items():
-            variables[f"--color-{key}"] = value
+            name = f"--color-{safe_key('color', key)}"
+            variables[name] = safe_value(name, value)
 
-        # Spacing variables
         for key, value in self.spacing.items():
-            variables[f"--spacing-{key}"] = value
+            name = f"--spacing-{safe_key('spacing', key)}"
+            variables[name] = safe_value(name, value)
 
-        # Typography variables
         if isinstance(self.typography, dict):
             for key, value in self.typography.items():
                 if isinstance(value, str):
-                    variables[f"--font-{key}"] = value
+                    name = f"--font-{safe_key('typography', key)}"
+                    variables[name] = safe_value(name, value)
                 elif isinstance(value, dict):
-                    # Handle nested typography settings
+                    group_key = safe_key("typography", key)
                     for sub_key, sub_value in value.items():
-                        variables[f"--font-{key}-{sub_key}"] = str(sub_value)
+                        name = (
+                            f"--font-{group_key}-"
+                            f"{safe_key('typography', sub_key)}"
+                        )
+                        variables[name] = safe_value(name, sub_value)
 
         return variables
 
