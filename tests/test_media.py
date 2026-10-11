@@ -32,17 +32,13 @@ class TestMediaTags(unittest.TestCase):
         """Test the creation of a video element."""
         video = Video(src="video.mp4", controls="controls")
         self.assertEqual(video.tag, "video")
-        self.assertEqual(
-            str(video), '<video src="video.mp4" controls></video>'
-        )
+        self.assertEqual(str(video), '<video src="video.mp4" controls></video>')
 
     def test_audio(self):
         """Test the creation of an audio element."""
         audio = Audio(src="audio.mp3", controls="controls")
         self.assertEqual(audio.tag, "audio")
-        self.assertEqual(
-            str(audio), '<audio src="audio.mp3" controls></audio>'
-        )
+        self.assertEqual(str(audio), '<audio src="audio.mp3" controls></audio>')
 
     def test_source(self):
         """Test the creation of a source element."""

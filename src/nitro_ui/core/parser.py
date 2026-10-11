@@ -4,7 +4,13 @@ import warnings
 from html.parser import HTMLParser
 from typing import List, Optional, Union
 
-from nitro_ui.core.element import HTMLElement, _SVG_CAMEL_ATTRS
+import re
+
+from nitro_ui.core.element import (
+    HTMLElement,
+    _BOOLEAN_ATTRIBUTES,
+    _SVG_CAMEL_ATTRS,
+)
 
 
 class HTMLParseWarning(UserWarning):
@@ -15,6 +21,8 @@ class HTMLParseWarning(UserWarning):
 
 # Tags where whitespace is significant and should be preserved
 _PREFORMATTED_TAGS = frozenset({"pre", "code", "textarea", "script", "style"})
+
+_WHITESPACE_RUN = re.compile(r"\s+")
 
 
 class NitroUIHTMLParser(HTMLParser):
@@ -49,40 +57,29 @@ class NitroUIHTMLParser(HTMLParser):
         self._flush_text_buffer()
 
         attributes = {}
-        seen_normalized = {}  # Track normalized attribute names to detect collisions
-
         for key, value in attrs:
-            # Restore SVG camelCase attrs that HTMLParser lowercased
-            # (e.g. "viewbox" -> "viewBox")
             if key in _SVG_CAMEL_ATTRS:
-                normalized_key = _SVG_CAMEL_ATTRS[key]
+                key = _SVG_CAMEL_ATTRS[key]
             elif key == "class":
-                normalized_key = "class_name"
-            else:
-                normalized_key = key.replace("-", "_")
+                key = "class_name"
 
-            # Check for attribute collision
-            if normalized_key in seen_normalized:
-                original_key = seen_normalized[normalized_key]
+            if key in attributes:
                 warnings.warn(
-                    f"Attribute collision in <{tag}>: '{key}' normalizes to "
-                    f"'{normalized_key}' which collides with '{original_key}'. "
-                    f"The later value will overwrite the earlier one.",
+                    f"Duplicate attribute '{key}' in <{tag}>. "
+                    "The later value will overwrite the earlier one.",
                     HTMLParseWarning,
                     stacklevel=4,
                 )
-            else:
-                seen_normalized[normalized_key] = key
 
-            # Store boolean attributes as True instead of empty string
             if value is None:
-                attributes[normalized_key] = True
+                attributes[key] = True if key in _BOOLEAN_ATTRIBUTES else ""
             else:
-                attributes[normalized_key] = value
+                attributes[key] = value
 
         is_self_closing = tag in self.VOID_ELEMENTS
 
-        element = HTMLElement(tag=tag, self_closing=is_self_closing, **attributes)
+        element = HTMLElement(tag=tag, self_closing=is_self_closing)
+        element._attributes = attributes
 
         if self.current is not None:
             self.current.append(element)
@@ -102,6 +99,9 @@ class NitroUIHTMLParser(HTMLParser):
         # as having a closing tag
         if tag in self.VOID_ELEMENTS:
             return
+
+        if self.stack and not self._in_preformatted():
+            self._strip_trailing_whitespace(self.stack[-1])
 
         if self.stack:
             if self.stack[-1].tag == tag:
@@ -131,51 +131,52 @@ class NitroUIHTMLParser(HTMLParser):
                 stacklevel=4,
             )
 
-    def handle_data(self, data: str):
-        """Handle text content between tags.
+    def _in_preformatted(self) -> bool:
+        return any(el.tag in _PREFORMATTED_TAGS for el in self.stack)
 
-        Preserves whitespace for preformatted elements (pre, code, textarea, etc.).
-        Strips whitespace for other elements.
-        """
-        # Determine if we're inside a preformatted element
-        in_preformatted = False
-        if self.current is not None:
-            for el in self.stack:
-                if el.tag in _PREFORMATTED_TAGS:
-                    in_preformatted = True
-                    break
-
-        if in_preformatted:
-            text = data  # Preserve whitespace as-is
-        else:
-            text = data.strip()
-
-        if text:
-            if self.current is not None:
-                self.text_buffer.append(text)
+    @staticmethod
+    def _strip_trailing_whitespace(element: HTMLElement) -> None:
+        nodes = element._children
+        if nodes and isinstance(nodes[-1], str):
+            stripped = nodes[-1].rstrip()
+            if stripped:
+                nodes[-1] = stripped
             else:
-                # Text outside of any element - wrap in a root-level text node
-                # by storing it temporarily and adding to next root element,
-                # or creating a fragment-like root text element
-                self.text_buffer.append(text)
+                nodes.pop()
+
+    def handle_data(self, data: str):
+        """Buffer text content between tags."""
+        self.text_buffer.append(data)
 
     def _flush_text_buffer(self):
-        """Flush accumulated text to the current element."""
+        """Flush accumulated text to the current element, keeping its position.
+
+        Whitespace is kept verbatim inside preformatted elements (pre,
+        code, textarea, script, style). Elsewhere, runs of whitespace
+        collapse to a single space, whitespace-only text spanning a line
+        break (indentation) is dropped, and text at the start or end of an
+        element is trimmed.
+        """
         if not self.text_buffer:
             return
 
         text = "".join(self.text_buffer)
         self.text_buffer.clear()
 
+        if self.current is not None and self._in_preformatted():
+            self.current.append(text)
+            return
+
+        if not text.strip() and ("\n" in text or self.current is None):
+            return
+        text = _WHITESPACE_RUN.sub(" ", text)
+
         if self.current is not None:
-            if self.current.text:
-                self.current.text += text
-            else:
-                self.current.text = text
-        elif text.strip():
-            # Root-level text: create a span wrapper to preserve it
-            wrapper = HTMLElement(text, tag="span")
-            self.roots.append(wrapper)
+            if not self.current._children:
+                text = text.lstrip()
+            self.current.append(text)
+        else:
+            self.roots.append(HTMLElement(text.strip(), tag="span"))
 
     def parse_html(self, html_string: str) -> Optional[HTMLElement]:
         """Parse HTML string and return root element."""

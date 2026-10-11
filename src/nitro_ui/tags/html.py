@@ -10,7 +10,8 @@ class HTML(HTMLElement):
     intended as the outermost node of a full page.
 
     Example:
-        >>> HTML(Head(Title("Home")), Body(H1("Hi"))).render().startswith("<!DOCTYPE html>")
+        >>> page = HTML(Head(Title("Home")), Body(H1("Hi")))
+        >>> page.render().startswith("<!DOCTYPE html>")
         True
     """
 

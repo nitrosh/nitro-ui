@@ -22,6 +22,10 @@ class Partial(HTMLElement):
             raise ValueError("Cannot specify both 'html' and 'file'")
         if html is None and file is None:
             raise ValueError("Must specify either 'html' or 'file'")
+        if html is not None and not isinstance(html, str):
+            raise TypeError(f"'html' must be a string, got {type(html).__name__}")
+        if file is not None and (not isinstance(file, str) or not file):
+            raise ValueError("'file' must be a non-empty path string")
 
         super().__init__(tag="partial")
         self._html = html
@@ -49,7 +53,7 @@ class Partial(HTMLElement):
         """
         self.on_before_render()
 
-        if self._file:
+        if self._file is not None:
             with open(self._file, "r", encoding="utf-8") as f:
                 result = f.read()
         else:
@@ -58,7 +62,7 @@ class Partial(HTMLElement):
         self.on_after_render()
         return result
 
-    def to_dict(self) -> dict:
+    def to_dict(self, _depth: int = 0, max_depth: int = DEFAULT_MAX_DEPTH) -> dict:
         """Return a dict with ``type="partial"`` plus the source marker.
 
         Either the inline ``html`` string or the ``file`` path is stored
@@ -83,20 +87,35 @@ class Partial(HTMLElement):
         return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "Partial":
+    def from_dict(cls, data: dict, allow_files: bool = False) -> "Partial":
         """Reconstruct a ``Partial`` from a ``to_dict()`` result.
 
+        Args:
+            data: Dict produced by ``to_dict()``.
+            allow_files: Allow a ``file`` source. Off by default so that
+                untrusted data can't make ``render()`` read files from disk.
+
         Raises:
-            ValueError: If ``data["type"]`` is not ``"partial"``.
+            ValueError: If ``data["type"]`` is not ``"partial"``, or it
+                names a file and ``allow_files`` is ``False``.
         """
-        if data.get("type") != "partial":
+        if not isinstance(data, dict) or data.get("type") != "partial":
             raise ValueError("Not a Partial element")
+        if data.get("file") is not None and not allow_files:
+            raise ValueError(
+                "Refusing to load a file-backed Partial from serialized data. "
+                "Pass allow_files=True (or allow_partial_files=True) if the "
+                "data is trusted."
+            )
         return cls(html=data.get("html"), file=data.get("file"))
 
     @classmethod
-    def from_json(cls, json_str: str) -> "Partial":
-        """Reconstruct a ``Partial`` from a ``to_json()`` result."""
+    def from_json(cls, json_str: str, allow_files: bool = False) -> "Partial":
+        """Reconstruct a ``Partial`` from a ``to_json()`` result.
+
+        See ``from_dict()`` for ``allow_files``.
+        """
         import json
 
         data = json.loads(json_str)
-        return cls.from_dict(data)
+        return cls.from_dict(data, allow_files=allow_files)

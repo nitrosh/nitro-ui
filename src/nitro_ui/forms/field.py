@@ -54,9 +54,25 @@ def _build_field(
         return Div(*elements)
 
 
-def _filter_none(**kwargs) -> Dict[str, Any]:
-    """Filter out None values from kwargs."""
-    return {k: v for k, v in kwargs.items() if v is not None}
+def _merge_attrs(overrides: Dict[str, Any], /, **defaults) -> Dict[str, Any]:
+    """Merge user attributes over factory defaults and drop None values."""
+    merged = {**defaults, **overrides}
+    return {k: v for k, v in merged.items() if v is not None}
+
+
+def _normalize_option(opt: Any) -> Optional[tuple]:
+    """Turn an option spec into ``(value, label, attrs)``, or None to skip it."""
+    if isinstance(opt, dict):
+        opt_value = opt.get("value", "")
+        opt_label = opt.get("label", opt_value)
+        opt_attrs = {k: v for k, v in opt.items() if k not in ("value", "label")}
+        return opt_value, str(opt_label), opt_attrs
+    if isinstance(opt, (tuple, list)):
+        opt_value, opt_label = opt
+        return opt_value, str(opt_label), {}
+    if opt is None:
+        return None
+    return str(opt), str(opt), {}
 
 
 class Field:
@@ -123,7 +139,8 @@ class Field:
             arguments were supplied.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="text",
             id=field_id,
             name=name,
@@ -133,7 +150,6 @@ class Field:
             pattern=pattern,
             placeholder=placeholder,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -156,14 +172,14 @@ class Field:
         internal email grammar when ``required`` is set.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="email",
             id=field_id,
             name=name,
             required=required if required else None,
             placeholder=placeholder,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -187,7 +203,8 @@ class Field:
         hints. Same shared options as :meth:`text`.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="password",
             id=field_id,
             name=name,
@@ -195,7 +212,6 @@ class Field:
             minlength=min_length,
             maxlength=max_length,
             placeholder=placeholder,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -217,14 +233,14 @@ class Field:
         basic absolute-URL grammar when ``required`` is set.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="url",
             id=field_id,
             name=name,
             required=required if required else None,
             placeholder=placeholder,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -248,7 +264,8 @@ class Field:
         checks. Same shared options as :meth:`text`.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="tel",
             id=field_id,
             name=name,
@@ -256,7 +273,6 @@ class Field:
             pattern=pattern,
             placeholder=placeholder,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -278,14 +294,14 @@ class Field:
         built-in "clear" control and inline search decorations.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="search",
             id=field_id,
             name=name,
             required=required if required else None,
             placeholder=placeholder,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -312,7 +328,8 @@ class Field:
         and ``min_length`` / ``max_length`` validation.
         """
         field_id = id or name
-        textarea_attrs = _filter_none(
+        textarea_attrs = _merge_attrs(
+            attrs,
             id=field_id,
             name=name,
             required=required if required else None,
@@ -321,11 +338,10 @@ class Field:
             minlength=min_length,
             maxlength=max_length,
             placeholder=placeholder,
-            **attrs,
         )
         # Textarea takes content as children, not value attribute
-        if value:
-            ta = Textarea(value, **textarea_attrs)
+        if value is not None:
+            ta = Textarea(str(value), **textarea_attrs)
         else:
             ta = Textarea(**textarea_attrs)
         return _build_field(ta, name, label, wrapper, id)
@@ -354,7 +370,8 @@ class Field:
         as :meth:`text`.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="number",
             id=field_id,
             name=name,
@@ -363,7 +380,6 @@ class Field:
             max=max,
             step=step,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -387,7 +403,8 @@ class Field:
         controls the snap increment.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="range",
             id=field_id,
             name=name,
@@ -395,7 +412,6 @@ class Field:
             max=max,
             step=step,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -427,7 +443,8 @@ class Field:
             value: Initial date as ``YYYY-MM-DD``.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="date",
             id=field_id,
             name=name,
@@ -435,7 +452,6 @@ class Field:
             min=min,
             max=max,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -463,7 +479,8 @@ class Field:
             value: Initial time as ``HH:MM``.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="time",
             id=field_id,
             name=name,
@@ -471,7 +488,6 @@ class Field:
             min=min,
             max=max,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -499,7 +515,8 @@ class Field:
             value: Initial value as ``YYYY-MM-DDTHH:MM``.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="datetime-local",
             id=field_id,
             name=name,
@@ -507,7 +524,6 @@ class Field:
             min=min,
             max=max,
             value=value,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -553,21 +569,10 @@ class Field:
         # Build option elements
         option_elements = []
         for opt in options:
-            if isinstance(opt, str):
-                opt_value = opt
-                opt_label = opt
-                opt_attrs = {}
-            elif isinstance(opt, tuple):
-                opt_value, opt_label = opt
-                opt_attrs = {}
-            elif isinstance(opt, dict):
-                opt_value = opt.get("value", "")
-                opt_label = opt.get("label", opt_value)
-                opt_attrs = {
-                    k: v for k, v in opt.items() if k not in ("value", "label")
-                }
-            else:
+            normalized = _normalize_option(opt)
+            if normalized is None:
                 continue
+            opt_value, opt_label, opt_attrs = normalized
 
             # Check if this option should be selected
             if value is not None and str(opt_value) == str(value):
@@ -575,8 +580,8 @@ class Field:
 
             option_elements.append(Option(opt_label, value=opt_value, **opt_attrs))
 
-        select_attrs = _filter_none(
-            id=field_id, name=name, required=required if required else None, **attrs
+        select_attrs = _merge_attrs(
+            attrs, id=field_id, name=name, required=required if required else None
         )
         sel = Select(*option_elements, **select_attrs)
         return _build_field(sel, name, label, wrapper, id)
@@ -611,14 +616,14 @@ class Field:
                 be ticked for the form to submit.
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="checkbox",
             id=field_id,
             name=name,
             value=value,
             checked=checked if checked else None,
             required=required if required else None,
-            **attrs,
         )
         inp = Input(**input_attrs)
 
@@ -673,20 +678,14 @@ class Field:
         # Build radio button elements
         radio_elements = []
         for i, opt in enumerate(options):
-            if isinstance(opt, tuple):
-                opt_value, opt_label = opt
-                opt_attrs = {}
-            elif isinstance(opt, dict):
-                opt_value = opt.get("value", "")
-                opt_label = opt.get("label", opt_value)
-                opt_attrs = {
-                    k: v for k, v in opt.items() if k not in ("value", "label")
-                }
-            else:
+            normalized = _normalize_option(opt)
+            if normalized is None:
                 continue
+            opt_value, opt_label, opt_attrs = normalized
 
             radio_id = f"{name}_{i}"
-            input_attrs = _filter_none(
+            input_attrs = _merge_attrs(
+                {**attrs, **opt_attrs},
                 type="radio",
                 id=radio_id,
                 name=name,
@@ -697,8 +696,6 @@ class Field:
                 checked=(
                     True if value is not None and str(opt_value) == str(value) else None
                 ),
-                **opt_attrs,
-                **attrs,
             )
             inp = Input(**input_attrs)
             radio_elements.append(Label(inp, " ", opt_label))
@@ -744,14 +741,14 @@ class Field:
             id: Override the default id (defaults to ``name``).
         """
         field_id = id or name
-        input_attrs = _filter_none(
+        input_attrs = _merge_attrs(
+            attrs,
             type="file",
             id=field_id,
             name=name,
             required=required if required else None,
             accept=accept,
             multiple=multiple if multiple else None,
-            **attrs,
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)
@@ -768,7 +765,7 @@ class Field:
             value: Value submitted with the form.
             **attrs: Extra attributes passed through to the ``<input>``.
         """
-        return Input(type="hidden", name=name, value=value, **attrs)
+        return Input(**_merge_attrs(attrs, type="hidden", name=name, value=value))
 
     @staticmethod
     def color(
@@ -792,8 +789,8 @@ class Field:
             id: Override the default id (defaults to ``name``).
         """
         field_id = id or name
-        input_attrs = _filter_none(
-            type="color", id=field_id, name=name, value=value, **attrs
+        input_attrs = _merge_attrs(
+            attrs, type="color", id=field_id, name=name, value=value
         )
         inp = Input(**input_attrs)
         return _build_field(inp, name, label, wrapper, id)

@@ -449,5 +449,73 @@ class TestFieldInForm(unittest.TestCase):
         self.assertIn("<button", rendered)
 
 
+class TestFieldAttrOverrides(unittest.TestCase):
+    def test_attrs_override_factory_type(self):
+        rendered = str(Field.text("q", type="search"))
+        self.assertIn('type="search"', rendered)
+        self.assertNotIn('type="text"', rendered)
+
+    def test_override_on_every_factory(self):
+        factories = [
+            lambda: Field.email("f", type="x"),
+            lambda: Field.password("f", type="x"),
+            lambda: Field.url("f", type="x"),
+            lambda: Field.tel("f", type="x"),
+            lambda: Field.search("f", type="x"),
+            lambda: Field.number("f", type="x"),
+            lambda: Field.range("f", type="x"),
+            lambda: Field.date("f", type="x"),
+            lambda: Field.time("f", type="x"),
+            lambda: Field.datetime_local("f", type="x"),
+            lambda: Field.checkbox("f", type="x"),
+            lambda: Field.file("f", type="x"),
+            lambda: Field.hidden("f", "v", type="x"),
+            lambda: Field.color("f", type="x"),
+        ]
+        for factory in factories:
+            self.assertIn('type="x"', str(factory()))
+
+    def test_radio_option_and_shared_attrs_merge(self):
+        result = Field.radio(
+            "r",
+            [{"value": "a", "label": "A", "class_name": "opt"}, ("b", "B")],
+            class_name="all",
+            id="custom",
+        )
+        rendered = str(result)
+        self.assertIn('class="opt"', rendered)
+        self.assertIn('class="all"', rendered)
+        self.assertIn('id="custom"', rendered)
+
+
+class TestFieldOptionShapes(unittest.TestCase):
+    def test_select_int_options_with_int_value(self):
+        rendered = str(Field.select("n", [1, 2, 3], value=2))
+        self.assertIn('<option value="1">1</option>', rendered)
+        self.assertIn('<option value="2" selected>2</option>', rendered)
+        self.assertIn('<option value="3">3</option>', rendered)
+
+    def test_select_list_pairs_and_floats(self):
+        rendered = str(Field.select("s", [["a", "A"], 1.5]))
+        self.assertIn('<option value="a">A</option>', rendered)
+        self.assertIn('<option value="1.5">1.5</option>', rendered)
+
+    def test_radio_accepts_strings_and_lists(self):
+        rendered = str(Field.radio("r", ["x", ["y", "Y"]], value="y"))
+        self.assertIn('value="x"', rendered)
+        self.assertIn('value="y" checked', rendered)
+
+
+class TestFieldFalsyValues(unittest.TestCase):
+    def test_textarea_zero_value(self):
+        self.assertIn(">0</textarea>", str(Field.textarea("t", value=0)))
+
+    def test_textarea_empty_string_value(self):
+        self.assertIn("></textarea>", str(Field.textarea("t", value="")))
+
+    def test_number_zero_value(self):
+        self.assertIn('value="0"', str(Field.number("n", value=0)))
+
+
 if __name__ == "__main__":
     unittest.main()

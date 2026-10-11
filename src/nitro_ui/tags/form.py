@@ -34,8 +34,8 @@ class Select(BaseSelect):
             A populated ``Select`` instance.
 
         Example:
-            >>> Select.with_items("Red", "Green", "Blue", name="color").render()
-            '<select name="color"><option>Red</option><option>Green</option><option>Blue</option></select>'
+            >>> Select.with_items("Red", "Green", name="color").render()
+            '<select name="color"><option>Red</option><option>Green</option></select>'
         """
         opt = cls(**kwargs)
         for item in items:
@@ -49,17 +49,7 @@ class Select(BaseSelect):
 register_tag("select", Select)
 
 
-def label_extra_init(self, kwargs):
-    """Translate ``for_element`` to ``for`` when a ``Label`` is constructed.
-
-    NitroUI normalizes Python-keyword-clashing attrs as ``for_element``;
-    the ``<label>`` tag uses the HTML name directly.
-    """
-    if "for_element" in kwargs:
-        kwargs["for"] = kwargs.pop("for_element")
-
-
-Label = simple_tag_class("label", extra_init=label_extra_init)
+Label = simple_tag_class("label")
 
 
 class Form(HTMLElement):

@@ -110,7 +110,7 @@ class TestTableTags(unittest.TestCase):
         with open(json_file, "w") as f:
             json.dump([["Header 1", "Header 2"], ["Data 1", "Data 2"]], f)
 
-        table = Table.from_json(json_file)
+        table = Table.from_json_file(json_file)
         expected = (
             "<table>"
             "<tr><td>Header 1</td><td>Header 2</td></tr>"
@@ -122,7 +122,7 @@ class TestTableTags(unittest.TestCase):
     def test_table_from_json_file_not_found(self):
         """Test error handling when JSON file is not found."""
         with self.assertRaises(ValueError) as context:
-            Table.from_json("non_existent_file.json")
+            Table.from_json_file("non_existent_file.json")
         self.assertTrue("File not found" in str(context.exception))
 
     def test_table_from_json_json_error(self):
@@ -132,7 +132,7 @@ class TestTableTags(unittest.TestCase):
             f.write("Invalid JSON")
 
         with self.assertRaises(ValueError) as context:
-            Table.from_json(json_file)
+            Table.from_json_file(json_file)
         self.assertTrue("JSON decoding error" in str(context.exception))
 
     def test_table_from_json_encoding_error(self):
@@ -142,7 +142,7 @@ class TestTableTags(unittest.TestCase):
             f.write(b"\xff\xfe\x00\x00")  # UTF-32 LE BOM
 
         with self.assertRaises(ValueError) as context:
-            Table.from_json(json_file, encoding="utf-8")
+            Table.from_json_file(json_file, encoding="utf-8")
         self.assertTrue("Encoding error" in str(context.exception))
 
     def test_table_from_json_invalid_data(self):
@@ -152,7 +152,7 @@ class TestTableTags(unittest.TestCase):
             json.dump({"invalid": "data"}, f)
 
         with self.assertRaises(ValueError) as context:
-            Table.from_json(json_file)
+            Table.from_json_file(json_file)
         self.assertTrue("JSON data must be a list of rows" in str(context.exception))
 
     def test_table_from_json_invalid_row(self):
@@ -162,7 +162,7 @@ class TestTableTags(unittest.TestCase):
             json.dump([["valid"], {"invalid": "row"}], f)
 
         with self.assertRaises(ValueError) as context:
-            Table.from_json(json_file)
+            Table.from_json_file(json_file)
         self.assertTrue(
             "Each row in JSON data must be a list" in str(context.exception)
         )

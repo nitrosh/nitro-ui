@@ -1,5 +1,6 @@
 import csv
 import json
+import warnings
 
 from nitro_ui.core.element import HTMLElement, register_tag
 from nitro_ui.tags.tag_factory import simple_tag_class
@@ -60,8 +61,32 @@ class Table(HTMLElement):
             raise ValueError(f"Encoding error: {encoding} is not suitable for the file")
         return table
 
-    @classmethod  # type: ignore[override]
-    def from_json(cls, file_path: str, encoding: str = "utf-8") -> "Table":
+    @classmethod
+    def from_json(
+        cls, json_str: str, encoding: str = "utf-8", allow_partial_files: bool = False
+    ) -> "Table":
+        """Reconstruct a table from a ``to_json()`` result.
+
+        Behaves like ``HTMLElement.from_json()``. Passing a file path still
+        works for backward compatibility but is deprecated; use
+        ``from_json_file()`` for that.
+
+        Args:
+            json_str: JSON previously produced by ``to_json()``.
+            encoding: Only used by the deprecated file-path form.
+            allow_partial_files: See ``HTMLElement.from_dict()``.
+        """
+        if json_str.lstrip().startswith("{"):
+            return super().from_json(json_str, allow_partial_files=allow_partial_files)
+        warnings.warn(
+            "Table.from_json(path) is deprecated; use Table.from_json_file(path).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return cls.from_json_file(json_str, encoding=encoding)
+
+    @classmethod
+    def from_json_file(cls, file_path: str, encoding: str = "utf-8") -> "Table":
         """Load a JSON file (a list of row-lists) into a ``<table>``.
 
         The file must decode to a list of lists; each inner list is

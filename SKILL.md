@@ -162,7 +162,7 @@ from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 | `Colgroup` | `<colgroup>` |
 | `Col` | `<col>` (self-closing) |
 
-`Table.from_json(path)` and `Table.from_csv(path)` create tables from files (first row = headers in `<thead>`, rest in `<tbody>`).
+`Table.from_json_file(path)` (a JSON list of row lists) and `Table.from_csv(path)` create tables from files. Every row becomes a `<tr>` of `<td>` cells; nothing is promoted to `<thead>`. `Table.from_json(json_str)` reconstructs a table from `to_json()` output like any other element (passing a file path still works but is deprecated).
 
 ### Media
 | PascalCase | HTML |
@@ -231,8 +231,9 @@ HTMLElement(tag="svg", view_box="0 0 100 100", preserve_aspect_ratio="xMidYMid")
 | Property | Type | Mutable | Notes |
 |----------|------|---------|-------|
 | `tag` | `str` | Yes | HTML tag name |
-| `children` | `List[HTMLElement]` | Yes | Use methods preferred |
-| `text` | `str` | Yes | Text content |
+| `children` | `List[HTMLElement]` | Yes | Child elements only (copy). Setting replaces the elements and keeps text |
+| `nodes` | `List[HTMLElement\|str]` | Yes | Text and elements together, in render order |
+| `text` | `str` | Yes | All text joined. Setting replaces every text node with one placed before the elements |
 | `attributes` | `dict` | Yes | Setting invalidates style cache |
 | `self_closing` | `bool` | Yes | |
 
@@ -246,8 +247,8 @@ HTMLElement(tag="svg", view_box="0 0 100 100", preserve_aspect_ratio="xMidYMid")
 |--------|---------|-------------|
 | `append(*children)` | `self` | Add children to end |
 | `prepend(*children)` | `self` | Add children to start |
-| `clear()` | `self` | Remove all children |
-| `pop(index=0)` | `HTMLElement` | Remove and return child |
+| `clear()` | `self` | Remove all child elements (text is kept) |
+| `pop(index=0)` | `HTMLElement` | Remove and return child element |
 | `remove_all(condition)` | `self` | Remove matching children |
 | `replace_child(index, new)` | `None` | Replace child at index (not chainable) |
 | `count_children()` | `int` | Number of direct children |
@@ -256,7 +257,7 @@ HTMLElement(tag="svg", view_box="0 0 100 100", preserve_aspect_ratio="xMidYMid")
 | `filter(cond, recursive=False, max_depth=1000)` | `Iterator` | Matching children/descendants |
 | `find_by_attribute(key, value, max_depth=1000)` | `HTMLElement\|None` | First descendant with matching attr |
 
-Children can be `HTMLElement`, `str`, or nested lists. `None` is silently ignored. Other types raise `ValueError`.
+Children can be `HTMLElement`, `str`, or nested lists. `None` is silently ignored. Other types raise `ValueError`. Text and elements render in the order given: `Paragraph("Hello ", Strong("world"), "!")` gives `<p>Hello <strong>world</strong>!</p>`. Index-based methods (`pop`, `replace_child`, `first`, `last`, `count_children`) count elements only.
 
 ### Attributes
 
@@ -279,7 +280,7 @@ Children can be `HTMLElement`, `str`, or nested lists. `None` is silently ignore
 | `get_style(key)` | `str\|None` | Get CSS property value |
 | `remove_style(key)` | `self` | Remove CSS property |
 
-CSS values are validated against injection patterns (`javascript:`, `expression()`, `url(data:)`, etc.).
+Property names must be valid CSS identifiers (custom properties like `--gap` are fine). Values are validated against `;` and injection patterns (`javascript:`, `expression()`, `url(data:)`, etc.). A `style=` attribute passed to the constructor, `add_attribute()` or `from_dict()` is checked for the same injection patterns.
 
 ### Rendering
 
@@ -292,10 +293,10 @@ CSS values are validated against injection patterns (`javascript:`, `expression(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `to_dict(max_depth=1000)` | `dict` | `{tag, self_closing, attributes, text, children}` |
+| `to_dict(max_depth=1000)` | `dict` | `{tag, self_closing, attributes, text, children}`. `text` is the text before the first child element; later text appears in `children` as plain strings |
 | `to_json(indent=None)` | `str` | JSON string |
-| `HTMLElement.from_dict(data, max_depth=1000)` | `HTMLElement` | Reconstruct from dict. Validates input types. Restores subclass types via tag registry. |
-| `HTMLElement.from_json(json_str)` | `HTMLElement` | Reconstruct from JSON |
+| `HTMLElement.from_dict(data, max_depth=1000, allow_partial_files=False)` | `HTMLElement` | Reconstruct from dict. Validates input types. Restores subclass types via tag registry, and `Partial` nodes. File-backed partials are refused unless `allow_partial_files=True`. |
+| `HTMLElement.from_json(json_str, allow_partial_files=False)` | `HTMLElement` | Reconstruct from JSON |
 | `from_html(html_str, fragment=False)` | `HTMLElement\|List\|None` | Parse HTML string. Preserves SVG camelCase attrs. |
 
 `from_html` is also available as a standalone function: `from nitro_ui import from_html`
@@ -361,6 +362,8 @@ Partial(file="partials/analytics.html")
 ```
 
 **Warning:** Only use with trusted content - bypasses XSS protections.
+
+Partials serialize with `to_dict()`/`to_json()`, including inside a tree. When deserializing, a `Partial(file=...)` is refused unless you pass `allow_files=True` to `Partial.from_dict()`/`from_json()` or `allow_partial_files=True` to `HTMLElement.from_dict()`/`from_json()`, so untrusted JSON can't read files from disk.
 
 ---
 
@@ -511,7 +514,9 @@ style = CSSStyle(
 )
 ```
 
-**Pseudo-selectors** (prefix `_`): `_hover`, `_active`, `_focus`, `_visited`, `_link`, `_first_child`, `_last_child`, `_nth_child`, `_before`, `_after`
+**Pseudo-selectors** (prefix `_`, snake_case becomes kebab-case): `_hover`, `_active`, `_focus`, `_focus_visible`, `_visited`, `_link`, `_first_child`, `_last_child`, `_before`, `_after`, and so on. Pseudo keys must hold a `CSSStyle`.
+
+**Functional pseudo-classes** take an `(argument, CSSStyle)` tuple: `_nth_child=("2n+1", CSSStyle(...))`, `_nth_of_type`, `_not=(".active", ...)`, `_is`, `_where`, `_has`. Leaving out the argument raises `ValueError`.
 
 **Breakpoints** (prefix `_`): `_xs` (0px), `_sm` (640px), `_md` (768px), `_lg` (1024px), `_xl` (1280px), `_2xl` (1536px)
 
@@ -1026,12 +1031,12 @@ Form(hx_ext="json-enc", hx_post="/api/submit")
 
 ## Security
 
-- **Automatic HTML escaping**: All text content and attribute values are escaped
+- **Automatic HTML escaping**: All text content and attribute values are escaped. Text inside `<script>` and `<style>` is emitted raw (browsers don't decode entities there), with any `</script` or `</style` sequence neutralised so content can't close the element early
 - **CSS value validation**: `add_style`/`add_styles`/`CSSStyle.to_inline()` reject `javascript:`, `expression()`, `url(data:)`, CSS hex escapes, etc. (raises `ValueError`). Uses a single shared validation implementation.
 - **CSS class name validation**: StyleSheet rejects class names containing injection patterns
 - **Tag name validation**: Tag names must match `^[a-zA-Z][a-zA-Z0-9-]*$`. Invalid names raise `ValueError`.
 - **Attribute key validation**: Invalid attribute keys are skipped with a warning during rendering.
-- **Boolean attribute safety**: `disabled=False` correctly omits the attribute (browsers treat any present attribute as truthy).
+- **Boolean attribute safety**: `disabled=False` correctly omits the attribute (browsers treat any present attribute as truthy). On non-boolean attributes, Python `True`/`False` render as `"true"`/`"false"` (e.g. `aria_hidden=True`).
 - **None attribute safety**: Attributes set to `None` are omitted from output (not rendered as literal `"None"`).
 - **No raw HTML injection**: Cannot inject unescaped HTML (use `Partial` for trusted raw HTML)
 - **Recursion protection**: `render()`, `filter()`, `find_by_attribute()`, `to_dict()`, `from_dict()` all have `max_depth` parameter (default 1000) to prevent stack overflow from circular references

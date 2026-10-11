@@ -17,7 +17,12 @@ from nitro_ui.tags.html import HTML
 from nitro_ui.tags.text import Anchor, Href, H1, Paragraph
 from nitro_ui.tags.form import Form, Input, Button, Datalist
 from nitro_ui.tags.layout import (
-    Div, Dialog, Address, Hgroup, Search, Menu,
+    Div,
+    Dialog,
+    Address,
+    Hgroup,
+    Search,
+    Menu,
 )
 from nitro_ui.tags.media import Image, Video
 
@@ -350,24 +355,14 @@ class TestSelfClosingWarnings(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             Image("alt text", src="img.jpg")
-            self.assertTrue(
-                any(
-                    "Self-closing" in str(x.message)
-                    for x in w
-                )
-            )
+            self.assertTrue(any("Self-closing" in str(x.message) for x in w))
 
     def test_self_closing_without_children_no_warning(self):
         """Self-closing elements without children don't warn."""
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
             Image(src="img.jpg")
-            self.assertFalse(
-                any(
-                    "Self-closing" in str(x.message)
-                    for x in w
-                )
-            )
+            self.assertFalse(any("Self-closing" in str(x.message) for x in w))
 
 
 class TestFormWithFields(unittest.TestCase):
@@ -568,36 +563,43 @@ class TestNewHTML5Tags(unittest.TestCase):
 
     def test_template(self):
         from nitro_ui.tags.html import Template
+
         t = Template(Div("slot content"))
         self.assertEqual(t.tag, "template")
 
     def test_svg(self):
         from nitro_ui.tags.html import Svg
+
         s = Svg()
         self.assertEqual(s.tag, "svg")
 
     def test_math(self):
         from nitro_ui.tags.html import Math
+
         m = Math()
         self.assertEqual(m.tag, "math")
 
     def test_bdi(self):
         from nitro_ui.tags.text import Bdi
+
         b = Bdi("text")
         self.assertEqual(b.tag, "bdi")
 
     def test_bdo(self):
         from nitro_ui.tags.text import Bdo
+
         b = Bdo("text", dir="rtl")
         self.assertEqual(b.tag, "bdo")
 
     def test_ruby_rt_rp(self):
         from nitro_ui.tags.text import Ruby, Rt, Rp
+
         r = Ruby("text", Rp("("), Rt("annotation"), Rp(")"))
         self.assertEqual(r.tag, "ruby")
 
     def test_data(self):
         from nitro_ui.tags.text import Data
+
         d = Data("100", value="100")
         self.assertEqual(d.tag, "data")
 
@@ -608,6 +610,7 @@ class TestTagsInitImports(unittest.TestCase):
     def test_import_from_tags_package(self):
         """Should be able to import from nitro_ui.tags directly."""
         from nitro_ui.tags import Div, H1, Form, Table, Image, UnorderedList
+
         self.assertIsNotNone(Div)
         self.assertIsNotNone(H1)
         self.assertIsNotNone(Form)

@@ -196,7 +196,7 @@ class TestPartialSerialization:
             f.flush()
             try:
                 data = {"type": "partial", "file": f.name}
-                partial = Partial.from_dict(data)
+                partial = Partial.from_dict(data, allow_files=True)
                 assert partial.render() == "<div>from file</div>"
             finally:
                 os.unlink(f.name)
@@ -227,7 +227,7 @@ class TestPartialSerialization:
             try:
                 original = Partial(file=f.name)
                 json_str = original.to_json()
-                restored = Partial.from_json(json_str)
+                restored = Partial.from_json(json_str, allow_files=True)
                 assert restored.render() == original.render()
             finally:
                 os.unlink(f.name)

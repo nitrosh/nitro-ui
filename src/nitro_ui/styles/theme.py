@@ -1,5 +1,6 @@
 """Theme class for NitroUI styling system."""
 
+import copy
 import re
 from typing import Dict, Optional, Any
 
@@ -10,6 +11,18 @@ from .style import CSSStyle
 # identifier, so they must be safe to splice between ``--<group>-`` and the
 # next character. Letters, digits, underscores, and hyphens only.
 _VALID_TOKEN_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def _is_style_dict(data: Any) -> bool:
+    """Return True if ``data`` has the shape of ``CSSStyle.to_dict()`` output."""
+    if not isinstance(data, dict) or "styles" not in data:
+        return False
+    if not set(data) <= {"styles", "pseudo", "breakpoints"}:
+        return False
+    styles = data["styles"]
+    return isinstance(styles, dict) and not any(
+        isinstance(v, dict) for v in styles.values()
+    )
 
 
 class Theme:
@@ -52,10 +65,10 @@ class Theme:
                 to ``CSSStyle`` (e.g. ``{"button": {"primary": ...}}``).
         """
         self.name = name
-        self.colors = colors or {}
-        self.typography = typography or {}
-        self.spacing = spacing or {}
-        self.components = components or {}
+        self.colors = copy.deepcopy(colors or {})
+        self.typography = copy.deepcopy(typography or {})
+        self.spacing = copy.deepcopy(spacing or {})
+        self.components = copy.deepcopy(components or {})
 
     def get_css_variables(self) -> Dict[str, str]:
         """Flatten colors, spacing, and typography into CSS custom properties.
@@ -106,16 +119,13 @@ class Theme:
 
         if isinstance(self.typography, dict):
             for key, value in self.typography.items():
-                if isinstance(value, str):
+                if isinstance(value, (str, int, float)) and not isinstance(value, bool):
                     name = f"--font-{safe_key('typography', key)}"
                     variables[name] = safe_value(name, value)
                 elif isinstance(value, dict):
                     group_key = safe_key("typography", key)
                     for sub_key, sub_value in value.items():
-                        name = (
-                            f"--font-{group_key}-"
-                            f"{safe_key('typography', sub_key)}"
-                        )
+                        name = f"--font-{group_key}-{safe_key('typography', sub_key)}"
                         variables[name] = safe_value(name, sub_value)
 
         return variables
@@ -154,30 +164,34 @@ class Theme:
         """Serialize the theme (including nested component styles) to a dict.
 
         Returns a JSON-safe dict that round-trips via ``from_dict()``.
-        Component entries that are ``CSSStyle`` instances are converted
-        to their dict form.
+        A single-style component is stored as its ``CSSStyle.to_dict()``
+        form; a variant map is stored as ``{"variants": {name: style}}``.
         """
-        return {
-            "name": self.name,
-            "colors": self.colors.copy(),
-            "typography": self.typography.copy(),
-            "spacing": self.spacing.copy(),
-            "components": {
-                name: (
-                    style.to_dict()
-                    if isinstance(style, CSSStyle)
-                    else {
+        components: Dict[str, Any] = {}
+        for name, style in self.components.items():
+            if isinstance(style, CSSStyle):
+                components[name] = style.to_dict()
+            else:
+                components[name] = {
+                    "variants": {
                         k: v.to_dict() if isinstance(v, CSSStyle) else v
                         for k, v in style.items()
                     }
-                )
-                for name, style in self.components.items()
-            },
+                }
+        return {
+            "name": self.name,
+            "colors": copy.deepcopy(self.colors),
+            "typography": copy.deepcopy(self.typography),
+            "spacing": copy.deepcopy(self.spacing),
+            "components": components,
         }
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Theme":
         """Reconstruct a ``Theme`` from a ``to_dict()`` result.
+
+        Also accepts the older variant format, where variant names sat
+        directly under the component key.
 
         Args:
             data: Dict previously produced by ``to_dict()``.
@@ -185,20 +199,23 @@ class Theme:
         Returns:
             A new ``Theme`` with equivalent tokens and components.
         """
-        # Reconstruct components
         components = {}
-        if "components" in data:
-            for name, comp_data in data["components"].items():
-                if isinstance(comp_data, dict):
-                    # Check if it's a style dict or variants dict
-                    if "styles" in comp_data:
-                        components[name] = CSSStyle.from_dict(comp_data)
-                    else:
-                        # It's variants
-                        components[name] = {
-                            k: CSSStyle.from_dict(v) if isinstance(v, dict) else v
-                            for k, v in comp_data.items()
-                        }
+        for name, comp_data in data.get("components", {}).items():
+            if not isinstance(comp_data, dict):
+                continue
+            if set(comp_data) == {"variants"} and not _is_style_dict(
+                comp_data["variants"]
+            ):
+                variants = comp_data["variants"]
+            elif _is_style_dict(comp_data):
+                components[name] = CSSStyle.from_dict(comp_data)
+                continue
+            else:
+                variants = comp_data
+            components[name] = {
+                k: CSSStyle.from_dict(v) if isinstance(v, dict) else v
+                for k, v in variants.items()
+            }
 
         return cls(
             name=data.get("name", "Default"),

@@ -25,13 +25,35 @@ _VALID_TAG_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9-]*$")
 _VALID_ATTR_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_:.@-]*$")
 
 # HTML5 boolean attributes that should render as bare attributes
-_BOOLEAN_ATTRIBUTES = frozenset({
-    "allowfullscreen", "async", "autofocus", "autoplay", "checked",
-    "controls", "default", "defer", "disabled", "formnovalidate",
-    "hidden", "inert", "ismap", "itemscope", "loop", "multiple",
-    "muted", "nomodule", "novalidate", "open", "playsinline",
-    "readonly", "required", "reversed", "selected",
-})
+_BOOLEAN_ATTRIBUTES = frozenset(
+    {
+        "allowfullscreen",
+        "async",
+        "autofocus",
+        "autoplay",
+        "checked",
+        "controls",
+        "default",
+        "defer",
+        "disabled",
+        "formnovalidate",
+        "hidden",
+        "inert",
+        "ismap",
+        "itemscope",
+        "loop",
+        "multiple",
+        "muted",
+        "nomodule",
+        "novalidate",
+        "open",
+        "playsinline",
+        "readonly",
+        "required",
+        "reversed",
+        "selected",
+    }
+)
 
 # Cache the environment variable check at module load time
 _GENERATE_IDS = bool(os.environ.get("NITRO_UI_GENERATE_IDS"))
@@ -114,9 +136,80 @@ def _build_svg_snake_map():
 
 _SVG_SNAKE_TO_CAMEL = _build_svg_snake_map()
 
+_PRESERVE_UNDERSCORE = frozenset({"class_name", "for_element"})
+
+_KEYWORD_MAPPINGS = {
+    "class_": "class_name",
+    "cls": "class_name",
+    "for_": "for_element",
+}
+
+_ATTR_ALIASES = {
+    "class": "class_name",
+    "class_name": "class",
+    "for": "for_element",
+    "for_element": "for",
+}
+
+_ATTR_RENDER_MAP = {
+    "class_name": "class",
+    "for_element": "for",
+}
+
+# Raw text elements: browsers do not decode entities inside these, so their
+# text must not be HTML-escaped.
+_RAW_TEXT_TAGS = frozenset({"script", "style"})
+
+_WHITESPACE_SENSITIVE_TAGS = frozenset({"pre", "textarea", "script", "style"})
+
+_RAW_TEXT_CLOSE_PATTERN = re.compile(r"</(script|style)", re.IGNORECASE)
+
+
+def _normalize_attr_key(key: str) -> str:
+    """Convert a Python kwarg name to the stored attribute name.
+
+    ``class_``/``cls`` -> ``class_name``, ``for_`` -> ``for_element``,
+    ``view_box`` -> ``viewBox``, and remaining underscores become hyphens
+    (``data_value`` -> ``data-value``).
+    """
+    if key in _KEYWORD_MAPPINGS:
+        return _KEYWORD_MAPPINGS[key]
+    if key in _PRESERVE_UNDERSCORE:
+        return key
+    if key in _SVG_SNAKE_TO_CAMEL:
+        return _SVG_SNAKE_TO_CAMEL[key]
+    return key.replace("_", "-")
+
+
+def _escape_raw_text(tag: str, text: str) -> str:
+    """Make text safe inside ``<script>``/``<style>`` without entity-escaping it.
+
+    Neutralises any sequence that would end the element early.
+    """
+    text = _RAW_TEXT_CLOSE_PATTERN.sub(lambda m: "<\\/" + m.group(1), text)
+    if tag == "script":
+        text = text.replace("<!--", "<\\!--")
+    return text
+
+
+def _render_attr_value(value: Any) -> str:
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    return html.escape(str(value), quote=True)
+
+
+_VALID_CSS_PROPERTY_PATTERN = re.compile(
+    r"^(--[a-zA-Z0-9_-]+|-?[a-zA-Z][a-zA-Z0-9-]*)$"
+)
+
 
 def _validate_css_value(value: str) -> bool:
-    """Validate that a CSS value doesn't contain injection attacks.
+    """Validate that a single CSS value doesn't contain injection attacks.
+
+    Rejects ``;`` as well, since a single value must not be able to start
+    a new declaration.
 
     Args:
         value: The CSS value to validate
@@ -125,8 +218,20 @@ def _validate_css_value(value: str) -> bool:
         True if safe, False if potentially dangerous
     """
     if not isinstance(value, str):
-        return True  # Non-strings will be converted safely
+        return True
+    return ";" not in value and not _DANGEROUS_CSS_PATTERN.search(value)
+
+
+def _validate_css_declarations(value: str) -> bool:
+    """Validate a full inline style string such as ``"color: red; margin: 0"``."""
+    if not isinstance(value, str):
+        return True
     return not _DANGEROUS_CSS_PATTERN.search(value)
+
+
+def _validate_css_property(name: str) -> bool:
+    """Return True if ``name`` is a plausible CSS property or custom property."""
+    return isinstance(name, str) and bool(_VALID_CSS_PROPERTY_PATTERN.match(name))
 
 
 class HTMLElement:
@@ -155,7 +260,6 @@ class HTMLElement:
     __slots__ = [
         "_tag",
         "_children",
-        "_text",
         "_attributes",
         "_self_closing",
         "_styles_cache",
@@ -183,21 +287,9 @@ class HTMLElement:
                 naming conventions applied to keys.
 
         Raises:
-            ValueError: If ``tag`` is empty, malformed, or a child has an
-                unsupported type.
+            ValueError: If ``tag`` is empty, malformed, a child has an
+                unsupported type, or ``style`` contains dangerous CSS.
         """
-        # Attributes that should keep underscores (not convert to hyphens)
-        PRESERVE_UNDERSCORE = {"class_name", "for_element"}
-
-        # Map trailing underscore convention to NitroUI convention
-        # e.g., class_ -> class_name, for_ -> for_element
-        # Also support cls as a short alias for class_name
-        KEYWORD_MAPPINGS = {
-            "class_": "class_name",
-            "cls": "class_name",
-            "for_": "for_element",
-        }
-
         if not tag:
             raise ValueError("A valid HTML tag name is required")
 
@@ -209,24 +301,11 @@ class HTMLElement:
                 "letters, digits, and hyphens."
             )
 
-        def normalize_attr_key(k: str) -> str:
-            # First, handle keyword mappings (class_ -> class_name, for_ -> for_element)
-            if k in KEYWORD_MAPPINGS:
-                return KEYWORD_MAPPINGS[k]
-            # Preserve certain keys with underscores
-            if k in PRESERVE_UNDERSCORE:
-                return k
-            # Check SVG camelCase map (view_box -> viewBox)
-            if k in _SVG_SNAKE_TO_CAMEL:
-                return _SVG_SNAKE_TO_CAMEL[k]
-            # Convert remaining underscores to hyphens (data_value -> data-value)
-            return k.replace("_", "-")
-
-        fixed_attributes = {normalize_attr_key(k): v for k, v in attributes.items()}
+        fixed_attributes = {_normalize_attr_key(k): v for k, v in attributes.items()}
+        self._check_style_attribute(fixed_attributes.get("style"))
 
         self._tag: str = tag
-        self._children: List[HTMLElement] = []
-        self._text: str = ""
+        self._children: List[Union[HTMLElement, str]] = self._coerce_children(children)
         self._attributes: dict = fixed_attributes
         self._self_closing: bool = self_closing
         self._styles_cache: Union[dict, None] = None
@@ -235,25 +314,7 @@ class HTMLElement:
         if _GENERATE_IDS:
             self.generate_id()
 
-        # Batch text children to avoid repeated string concatenation
-        text_parts: List[str] = []
-        for child in self._flatten(children):
-            if isinstance(child, HTMLElement):
-                self._children.append(child)
-            elif isinstance(child, str):
-                text_parts.append(child)
-            elif child is not None:
-                # Raise error for invalid types
-                raise ValueError(
-                    f"Invalid child type: {type(child).__name__}."
-                    " Children must be HTMLElement instances"
-                    " or strings."
-                )
-        if text_parts:
-            self._text = "".join(text_parts)
-
-        # Warn if children/text added to self-closing elements
-        if self._self_closing and (self._children or self._text):
+        if self._self_closing and self._children:
             warnings.warn(
                 f"Self-closing element <{self._tag} /> cannot "
                 "have children or text. Content will be "
@@ -295,12 +356,38 @@ class HTMLElement:
             else:
                 yield item
 
+    @staticmethod
+    def _coerce_children(items: Any) -> List[Union["HTMLElement", str]]:
+        """Flatten and validate children, keeping elements and text in order."""
+        nodes: List[Union[HTMLElement, str]] = []
+        for child in HTMLElement._flatten(items):
+            if isinstance(child, HTMLElement):
+                nodes.append(child)
+            elif isinstance(child, str):
+                if child:
+                    nodes.append(child)
+            elif child is not None:
+                raise ValueError(
+                    f"Invalid child type: {type(child).__name__}. "
+                    "Children must be HTMLElement instances or strings."
+                )
+        return nodes
+
+    def _element_children(self) -> List["HTMLElement"]:
+        return [c for c in self._children if isinstance(c, HTMLElement)]
+
+    def _node_index(self, index: int) -> int:
+        """Map an index into the element-only child list to a node index."""
+        positions = [
+            i for i, c in enumerate(self._children) if isinstance(c, HTMLElement)
+        ]
+        return positions[index]
+
     def prepend(self, *children: Union["HTMLElement", str, List[Any]]) -> "HTMLElement":
         """Insert children at the front of this element.
 
         Mirrors ``append()`` but adds content at the start rather than the
-        end. Strings are prefixed to the existing text content; elements
-        are placed before existing children.
+        end. Text and elements keep the order they were given in.
 
         Args:
             *children: Elements, strings, or nested lists/tuples. ``None``
@@ -316,29 +403,16 @@ class HTMLElement:
             >>> Div(H2("Body")).prepend(H1("Title")).render()
             '<div><h1>Title</h1><h2>Body</h2></div>'
         """
-        new_children: List[HTMLElement] = []
-        text_parts: List[str] = []
-        for child in self._flatten(children):
-            if isinstance(child, HTMLElement):
-                new_children.append(child)
-            elif isinstance(child, str):
-                text_parts.append(child)
-            elif child is not None:
-                raise ValueError(
-                    f"Invalid child type: {type(child).__name__}. "
-                    "Children must be HTMLElement instances or strings."
-                )
-        if text_parts:
-            self._text = "".join(text_parts) + self._text
-        self._children = new_children + self._children
+        self._children = self._coerce_children(children) + self._children
         return self
 
     def append(self, *children: Union["HTMLElement", str, List[Any]]) -> "HTMLElement":
         """Add children to the end of this element.
 
-        Strings are concatenated to the existing text content; elements
-        are placed after existing children. Nested lists/tuples are
-        flattened so you can splice collections in directly.
+        Text and elements render in the order they were added, so
+        ``Paragraph("Hello ", Strong("world"), "!")`` keeps the ``!`` after
+        the ``<strong>``. Nested lists/tuples are flattened so you can
+        splice collections in directly.
 
         Args:
             *children: Elements, strings, or nested lists/tuples. ``None``
@@ -354,19 +428,7 @@ class HTMLElement:
             >>> Div().append(H1("Title"), Paragraph("Body")).render()
             '<div><h1>Title</h1><p>Body</p></div>'
         """
-        text_parts: List[str] = []
-        for child in self._flatten(children):
-            if isinstance(child, HTMLElement):
-                self._children.append(child)
-            elif isinstance(child, str):
-                text_parts.append(child)
-            elif child is not None:
-                raise ValueError(
-                    f"Invalid child type: {type(child).__name__}. "
-                    "Children must be HTMLElement instances or strings."
-                )
-        if text_parts:
-            self._text += "".join(text_parts)
+        self._children.extend(self._coerce_children(children))
         return self
 
     def filter(
@@ -376,7 +438,9 @@ class HTMLElement:
         max_depth: int = DEFAULT_MAX_DEPTH,
         _current_depth: int = 0,
     ) -> Iterator["HTMLElement"]:
-        """Yield children (and optionally descendants) matching a predicate.
+        """Yield child elements (and optionally descendants) matching a predicate.
+
+        Text nodes are never passed to ``condition``.
 
         Args:
             condition: Called with each child; return ``True`` to yield it.
@@ -400,7 +464,7 @@ class HTMLElement:
                 f"Maximum recursion depth ({max_depth}) exceeded in filter(). "
                 "Consider increasing max_depth or checking for circular references."
             )
-        for child in self._children:
+        for child in self._element_children():
             if condition(child):
                 yield child
             if recursive:
@@ -412,9 +476,10 @@ class HTMLElement:
                 )
 
     def remove_all(self, condition: Callable[[Any], bool]) -> "HTMLElement":
-        """Remove every direct child matching a predicate.
+        """Remove every direct child element matching a predicate.
 
-        Only the immediate children are considered (not descendants).
+        Only the immediate children are considered (not descendants), and
+        text nodes are left alone.
 
         Args:
             condition: Called with each child; return ``True`` to remove it.
@@ -422,25 +487,28 @@ class HTMLElement:
         Returns:
             This element, for chaining.
         """
-        to_remove = list(self.filter(condition))
-        for child in to_remove:
-            if child in self._children:
-                self._children.remove(child)
+        self._children = [
+            c
+            for c in self._children
+            if not (isinstance(c, HTMLElement) and condition(c))
+        ]
         return self
 
     def clear(self) -> "HTMLElement":
-        """Remove all children from this element.
+        """Remove all child elements from this element.
 
         Text content is left untouched; use ``text = ""`` to clear it.
 
         Returns:
             This element, for chaining.
         """
-        self._children.clear()
+        self._children = [c for c in self._children if isinstance(c, str)]
         return self
 
     def pop(self, index: int = 0) -> "HTMLElement":
-        """Remove and return a child by position.
+        """Remove and return a child element by position.
+
+        Positions count elements only; text nodes are skipped.
 
         Args:
             index: Position to remove from; defaults to the first child.
@@ -452,40 +520,68 @@ class HTMLElement:
             IndexError: If the element has no children or the index is
                 out of range.
         """
-        return self._children.pop(index)
+        try:
+            node_index = self._node_index(index)
+        except IndexError:
+            raise IndexError("pop index out of range") from None
+        return self._children.pop(node_index)
 
     def first(self) -> Union["HTMLElement", None]:
-        """Return the first child, or ``None`` if this element has none."""
-        return self._children[0] if self._children else None
+        """Return the first child element, or ``None`` if there are none."""
+        elements = self._element_children()
+        return elements[0] if elements else None
 
     def last(self) -> Union["HTMLElement", None]:
-        """Return the last child, or ``None`` if this element has none."""
-        return self._children[-1] if self._children else None
+        """Return the last child element, or ``None`` if there are none."""
+        elements = self._element_children()
+        return elements[-1] if elements else None
+
+    def _resolve_attr_key(self, key: str) -> str:
+        """Normalize ``key`` and map it onto an existing alias if present.
+
+        ``class``/``class_name`` and ``for``/``for_element`` refer to the
+        same attribute, whichever spelling was used to set it.
+        """
+        key = _normalize_attr_key(key)
+        alias = _ATTR_ALIASES.get(key)
+        if key not in self._attributes and alias in self._attributes:
+            return alias
+        return key
+
+    @staticmethod
+    def _check_style_attribute(value: Any) -> None:
+        if isinstance(value, str) and not _validate_css_declarations(value):
+            raise ValueError(
+                f"Inline style contains potentially dangerous content: {value!r}. "
+                "Styles cannot contain javascript:, expression(), or other "
+                "injection patterns."
+            )
 
     def add_attribute(self, key: str, value: str) -> "HTMLElement":
         """Set a single HTML attribute on this element.
 
-        Existing attributes with the same key are overwritten. Setting the
+        Keys are normalized the same way as constructor kwargs
+        (``data_value`` -> ``data-value``), and ``class``/``class_name`` or
+        ``for``/``for_element`` update the same attribute. Setting the
         ``style`` attribute invalidates the parsed-styles cache used by
         ``add_style`` / ``get_style``.
 
         Args:
-            key: Attribute name (use ``class_name`` instead of ``class``).
+            key: Attribute name.
             value: Attribute value. Will be HTML-escaped at render time.
 
         Returns:
             This element, for chaining.
+
+        Raises:
+            ValueError: If ``key`` is ``style`` and the value contains
+                dangerous CSS.
         """
-        # Prevent duplicate class attributes from mixed API usage
-        if key == "class" and "class_name" in self._attributes:
-            self._attributes["class_name"] = value
-        elif key == "class_name" and "class" in self._attributes:
-            del self._attributes["class"]
-            self._attributes["class_name"] = value
-        else:
-            self._attributes[key] = value
+        key = self._resolve_attr_key(key)
         if key == "style":
+            self._check_style_attribute(value)
             self._styles_cache = None
+        self._attributes[key] = value
         return self
 
     def add_attributes(self, attributes: List[Tuple[str, str]]) -> "HTMLElement":
@@ -500,14 +596,8 @@ class HTMLElement:
         Example:
             >>> el.add_attributes([("id", "main"), ("data-role", "card")])
         """
-        has_style = False
         for key, value in attributes:
             self.add_attribute(key, value)
-            if key == "style":
-                has_style = True
-
-        if has_style:
-            self._styles_cache = None
         return self
 
     def remove_attribute(self, key: str) -> "HTMLElement":
@@ -519,6 +609,7 @@ class HTMLElement:
         Returns:
             This element, for chaining.
         """
+        key = self._resolve_attr_key(key)
         self._attributes.pop(key, None)
         if key == "style":
             self._styles_cache = None
@@ -526,11 +617,11 @@ class HTMLElement:
 
     def get_attribute(self, key: str) -> Union[str, None]:
         """Return the value of a named attribute, or ``None`` if absent."""
-        return self._attributes.get(key)
+        return self._attributes.get(self._resolve_attr_key(key))
 
     def has_attribute(self, key: str) -> bool:
         """Return ``True`` if the given attribute is set on this element."""
-        return key in self._attributes
+        return self._resolve_attr_key(key) in self._attributes
 
     def _get_styles_dict(self) -> dict:
         """Gets the cached styles dictionary, parsing if necessary.
@@ -551,10 +642,23 @@ class HTMLElement:
             else:
                 self._attributes.pop("style", None)
 
+    @staticmethod
+    def _check_style_declaration(key: str, value: Any) -> None:
+        if not _validate_css_property(key):
+            raise ValueError(f"Invalid CSS property name: {key!r}")
+        if not _validate_css_value(str(value)):
+            raise ValueError(
+                f"CSS value for '{key}' contains potentially "
+                f"dangerous content: {value!r}. "
+                "Values cannot contain ';', javascript:, expression(),"
+                " or other injection patterns."
+            )
+
     def add_style(self, key: str, value: str) -> "HTMLElement":
         """Add a single inline CSS declaration to this element.
 
-        Values are checked for common injection patterns (``javascript:``,
+        The property name must be a valid CSS identifier, and values are
+        checked for ``;`` and common injection patterns (``javascript:``,
         ``expression(...)``, etc.) before being stored.
 
         Args:
@@ -565,19 +669,14 @@ class HTMLElement:
             This element, for chaining.
 
         Raises:
-            ValueError: If ``value`` contains potentially dangerous content.
+            ValueError: If ``key`` is not a valid CSS property name or
+                ``value`` contains potentially dangerous content.
 
         Example:
             >>> Div().add_style("color", "red").render()
             '<div style="color: red"></div>'
         """
-        if not _validate_css_value(str(value)):
-            raise ValueError(
-                f"CSS value for '{key}' contains potentially "
-                f"dangerous content: {value!r}. "
-                "Values cannot contain javascript:, expression(),"
-                " or other injection patterns."
-            )
+        self._check_style_declaration(key, value)
         styles_dict = self._get_styles_dict()
         styles_dict[key] = value
         self._flush_styles_cache()
@@ -597,16 +696,11 @@ class HTMLElement:
             This element, for chaining.
 
         Raises:
-            ValueError: If any value contains potentially dangerous content.
+            ValueError: If any key is not a valid CSS property name or any
+                value contains potentially dangerous content.
         """
         for key, value in styles.items():
-            if not _validate_css_value(str(value)):
-                raise ValueError(
-                    f"CSS value for '{key}' contains potentially"
-                    f" dangerous content: {value!r}. "
-                    "Values cannot contain javascript:, "
-                    "expression(), or other injection patterns."
-                )
+            self._check_style_declaration(key, value)
         styles_dict = self._get_styles_dict()
         styles_dict.update(styles)
         self._flush_styles_cache()
@@ -712,7 +806,9 @@ class HTMLElement:
         return copy.deepcopy(self)
 
     def replace_child(self, old_index: int, new_child: "HTMLElement") -> None:
-        """Swap a child at the given index with a new element.
+        """Swap a child element at the given index with a new element.
+
+        Positions count elements only; text nodes are skipped.
 
         Args:
             old_index: Position of the child to replace.
@@ -726,7 +822,7 @@ class HTMLElement:
             raise ValueError(
                 f"new_child must be an HTMLElement, got {type(new_child).__name__}"
             )
-        self._children[old_index] = new_child
+        self._children[self._node_index(old_index)] = new_child
 
     def find_by_attribute(
         self,
@@ -764,7 +860,7 @@ class HTMLElement:
                 )
             if element.get_attribute(attr_name) == attr_value:
                 return element
-            for child in element._children:
+            for child in element._element_children():
                 result = _find(child, current_depth + 1)
                 if result:
                     return result
@@ -784,12 +880,12 @@ class HTMLElement:
             A new dict; mutating it does not affect the element.
         """
         if keys:
-            return {key: self._attributes.get(key) for key in keys}
+            return {key: self.get_attribute(key) for key in keys}
         return self._attributes.copy()
 
     def count_children(self) -> int:
-        """Return the number of direct children (not including text content)."""
-        return len(self._children)
+        """Return the number of direct child elements (not including text)."""
+        return len(self._element_children())
 
     def on_load(self) -> None:
         """Hook called at the end of ``__init__``. Override for custom setup."""
@@ -835,25 +931,40 @@ class HTMLElement:
 
     @property
     def children(self) -> List["HTMLElement"]:
-        """A shallow copy of the list of child elements.
+        """A shallow copy of the list of child elements (text excluded).
 
         The returned list can be mutated without affecting this element.
-        Assigning to this property replaces the internal child list.
+        Assigning to this property replaces the child elements; existing
+        text is kept and placed before them. Use ``nodes`` to get or set
+        text and elements together in order.
         """
-        return list(self._children)
+        return self._element_children()
 
     @children.setter
     def children(self, value: List["HTMLElement"]) -> None:
-        self._children = value
+        nodes = self._coerce_children(value)
+        text = [c for c in self._children if isinstance(c, str)]
+        self._children = text + nodes
+
+    @property
+    def nodes(self) -> List[Union["HTMLElement", str]]:
+        """A shallow copy of all children, text and elements, in render order."""
+        return list(self._children)
+
+    @nodes.setter
+    def nodes(self, value: List[Union["HTMLElement", str]]) -> None:
+        self._children = self._coerce_children(value)
 
     @property
     def text(self) -> str:
-        """Text content of this element (already-joined, unescaped source)."""
-        return self._text
+        """All text content of this element joined together (unescaped)."""
+        return "".join(c for c in self._children if isinstance(c, str))
 
     @text.setter
     def text(self, value: str) -> None:
-        self._text = value
+        """Replace all text nodes with ``value``, placed before any elements."""
+        elements = self._element_children()
+        self._children = ([value] if value else []) + elements
 
     @property
     def attributes(self) -> dict:
@@ -875,21 +986,16 @@ class HTMLElement:
         self._self_closing = value
 
     def _render_attributes(self) -> str:
-        """Returns a string of HTML attributes for the tag."""
-        # Map internal attribute names to HTML attribute names
-        ATTR_RENDER_MAP = {
-            "class_name": "class",
-            "for_element": "for",
-        }
+        """Returns a string of HTML attributes for the tag.
 
-        def render_key(k: str) -> str:
-            return ATTR_RENDER_MAP.get(k, k)
-
+        Python ``True``/``False`` on boolean HTML attributes (``disabled``,
+        ``checked``, ...) add or omit the bare attribute. On any other
+        attribute they render as ``"true"``/``"false"``.
+        """
         parts = []
         for k, v in self._attributes.items():
-            render_k = render_key(k)
+            render_k = _ATTR_RENDER_MAP.get(k, k)
 
-            # Validate attribute key to prevent injection
             if not _VALID_ATTR_PATTERN.match(render_k):
                 warnings.warn(
                     f"Skipping invalid attribute name: {render_k!r}",
@@ -898,24 +1004,60 @@ class HTMLElement:
                 )
                 continue
 
-            # Handle None values - skip the attribute
             if v is None:
                 continue
 
-            # Handle boolean attributes
-            if render_k in _BOOLEAN_ATTRIBUTES:
+            if render_k.lower() in _BOOLEAN_ATTRIBUTES:
                 if v is True or v == "" or v == render_k:
                     parts.append(render_k)
-                elif v is False:
-                    continue  # Omit the attribute entirely
-                else:
-                    # Non-boolean value on a boolean attribute, render normally
-                    parts.append(f'{render_k}="{html.escape(str(v), quote=True)}"')
+                elif v is not False:
+                    parts.append(f'{render_k}="{_render_attr_value(v)}"')
             else:
-                parts.append(f'{render_k}="{html.escape(str(v), quote=True)}"')
+                parts.append(f'{render_k}="{_render_attr_value(v)}"')
 
         attr_str = " ".join(parts)
         return f" {attr_str}" if attr_str else ""
+
+    def _render_text(self, text: str) -> str:
+        tag = self._tag.lower()
+        if tag in _RAW_TEXT_TAGS:
+            return _escape_raw_text(tag, text)
+        return html.escape(text)
+
+    def _render_nodes(self, pretty: bool, _indent: int, max_depth: int) -> str:
+        """Render this element's children (text and elements) in order."""
+        if not pretty or self._tag.lower() in _WHITESPACE_SENSITIVE_TAGS:
+            return "".join(
+                (
+                    self._render_text(node)
+                    if isinstance(node, str)
+                    else node.render(
+                        pretty=False, _indent=_indent + 1, max_depth=max_depth
+                    )
+                )
+                for node in self._children
+            )
+
+        child_indent = "  " * (_indent + 1)
+        parts = []
+        at_line_start = False
+        for node in self._children:
+            if isinstance(node, str):
+                text = self._render_text(node)
+                if at_line_start:
+                    parts.append(f"{child_indent}{text}\n")
+                else:
+                    parts.append(text)
+            else:
+                if not at_line_start:
+                    parts.append("\n")
+                    at_line_start = True
+                parts.append(
+                    node.render(pretty=True, _indent=_indent + 1, max_depth=max_depth)
+                )
+        if at_line_start:
+            parts.append("  " * _indent)
+        return "".join(parts)
 
     def render(
         self,
@@ -925,13 +1067,17 @@ class HTMLElement:
     ) -> str:
         """Serialize this element and its subtree to an HTML string.
 
-        Attribute values and text content are HTML-escaped. The opening
-        tag, attributes, children, and closing tag are emitted in order;
-        self-closing elements emit ``<tag />`` with no children.
+        Attribute values and text content are HTML-escaped, except inside
+        ``<script>`` and ``<style>``, where text is emitted as-is (browsers
+        do not decode entities there) with any closing ``</script`` or
+        ``</style`` sequence neutralised. Text and child elements render
+        in the order they were added. Self-closing elements emit
+        ``<tag />`` with no children.
 
         Args:
             pretty: If ``True``, insert indentation and newlines for
-                human-readable output. Defaults to compact output.
+                human-readable output. Content of ``<pre>``, ``<textarea>``,
+                ``<script>`` and ``<style>`` is never reformatted.
             max_depth: Traversal cutoff (default 1000) guarding against
                 circular references in the tree.
 
@@ -955,46 +1101,15 @@ class HTMLElement:
 
         self.on_before_render()
 
-        attributes = self._render_attributes()
         indent_str = "  " * _indent if pretty else ""
-        tag_start = f"{indent_str}<{self._tag}{attributes}"
+        newline = "\n" if pretty else ""
+        tag_start = f"{indent_str}<{self._tag}{self._render_attributes()}"
 
         if self._self_closing:
-            parts = [tag_start, " />"]
-            if pretty:
-                parts.append("\n")
-            result = "".join(parts)
+            result = f"{tag_start} />{newline}"
         else:
-            if pretty and self._children:
-                children_html = "".join(
-                    child.render(pretty=True, _indent=_indent + 1, max_depth=max_depth)
-                    for child in self._children
-                )
-                escaped_text = html.escape(self._text)
-
-                if self._children or self._text:
-                    parts = [tag_start, ">"]
-                    if escaped_text:
-                        parts.append(escaped_text)
-                    if self._children:
-                        parts.extend(["\n", children_html, indent_str])
-                    parts.append(f"</{self._tag}>\n")
-                    result = "".join(parts)
-                else:
-                    result = f"{tag_start}></{self._tag}>\n"
-            elif pretty:
-                # Pretty mode but no children - still add newline
-                escaped_text = html.escape(self._text)
-                result = f"{tag_start}>{escaped_text}</{self._tag}>\n"
-            else:
-                children_html = "".join(
-                    child.render(
-                        pretty=pretty, _indent=_indent + 1, max_depth=max_depth
-                    )
-                    for child in self._children
-                )
-                escaped_text = html.escape(self._text)
-                result = f"{tag_start}>{escaped_text}{children_html}</{self._tag}>"
+            inner = self._render_nodes(pretty, _indent, max_depth)
+            result = f"{tag_start}>{inner}</{self._tag}>{newline}"
 
         if self._prefix:
             result = f"{self._prefix}{result}"
@@ -1010,8 +1125,11 @@ class HTMLElement:
         """Serialize this element and its subtree to a plain dict.
 
         The returned dict has keys ``tag``, ``self_closing``,
-        ``attributes``, ``text``, and ``children`` (recursively). It is
-        JSON-safe and round-trips via ``from_dict()``.
+        ``attributes``, ``text``, and ``children`` (recursively). ``text``
+        holds any text that comes before the first child element. Text that
+        follows an element is kept in ``children`` as a plain string so the
+        original order survives. It is JSON-safe and round-trips via
+        ``from_dict()``.
 
         Args:
             max_depth: Traversal cutoff (default 1000) guarding against
@@ -1028,14 +1146,23 @@ class HTMLElement:
                 f"Maximum recursion depth ({max_depth}) exceeded in to_dict(). "
                 "This usually indicates a circular reference in the element tree."
             )
+        leading = 0
+        while leading < len(self._children) and isinstance(
+            self._children[leading], str
+        ):
+            leading += 1
         return {
             "tag": self._tag,
             "self_closing": self._self_closing,
             "attributes": self._attributes.copy(),
-            "text": self._text,
+            "text": "".join(self._children[:leading]),
             "children": [
-                child.to_dict(_depth=_depth + 1, max_depth=max_depth)
-                for child in self._children
+                (
+                    child
+                    if isinstance(child, str)
+                    else child.to_dict(_depth=_depth + 1, max_depth=max_depth)
+                )
+                for child in self._children[leading:]
             ],
         }
 
@@ -1057,30 +1184,34 @@ class HTMLElement:
         data: dict,
         _depth: int = 0,
         max_depth: int = DEFAULT_MAX_DEPTH,
+        allow_partial_files: bool = False,
     ) -> "HTMLElement":
         """Reconstruct an element tree from a ``to_dict()`` result.
 
         Uses the tag registry populated by the tag factory to instantiate
         the most specific subclass for each tag, so ``Fragment``,
         ``Table``, ``Form``, etc. round-trip as their real types.
+        Serialized ``Partial`` nodes are restored too.
 
         Args:
             data: Dict produced by ``to_dict()``.
             max_depth: Traversal cutoff (default 1000).
+            allow_partial_files: Allow ``Partial`` nodes that read from a
+                file path. Off by default, because a crafted payload could
+                otherwise make ``render()`` read any file on disk.
 
         Returns:
             Reconstructed ``HTMLElement`` (or subclass matching ``tag``).
 
         Raises:
-            ValueError: If ``data`` is not a dict, is missing ``tag``, or
-                has a field with the wrong type.
+            ValueError: If ``data`` is not a dict, is missing ``tag``, has
+                a field with the wrong type, has a dangerous inline style,
+                or contains a file-backed ``Partial`` without
+                ``allow_partial_files``.
             RecursionError: If ``max_depth`` is exceeded.
         """
         if not isinstance(data, dict):
             raise ValueError("Input must be a dictionary")
-
-        if "tag" not in data:
-            raise ValueError("Dictionary must contain 'tag' key")
 
         if _depth > max_depth:
             raise RecursionError(
@@ -1088,7 +1219,14 @@ class HTMLElement:
                 "This usually indicates deeply nested or circular data."
             )
 
-        # Validate field types
+        if data.get("type") == "partial":
+            from nitro_ui.core.partial import Partial
+
+            return Partial.from_dict(data, allow_files=allow_partial_files)
+
+        if "tag" not in data:
+            raise ValueError("Dictionary must contain 'tag' key")
+
         tag = data["tag"]
         if not isinstance(tag, str):
             raise ValueError(f"'tag' must be a string, got {type(tag).__name__}")
@@ -1104,6 +1242,7 @@ class HTMLElement:
             raise ValueError(
                 f"'attributes' must be a dict, got {type(attributes).__name__}"
             )
+        cls._check_style_attribute(attributes.get("style"))
 
         text = data.get("text", "")
         if text is not None and not isinstance(text, str):
@@ -1115,46 +1254,53 @@ class HTMLElement:
                 f"'children' must be a list, got {type(children_data).__name__}"
             )
 
-        # Use the _TAG_REGISTRY for subclass reconstruction if available
-        target_cls = _TAG_REGISTRY.get(tag, cls) if cls is HTMLElement else cls
-
-        # Handle Fragment type specially
         if tag == "fragment":
             from nitro_ui.core.fragment import Fragment
-            target_cls = Fragment
 
-        # Fragment and other subclasses may set their own tag in __init__,
-        # so only pass tag when using base HTMLElement
+            target_cls = Fragment
+        elif cls is HTMLElement:
+            target_cls = _TAG_REGISTRY.get(tag, cls)
+        else:
+            target_cls = cls
+
         if target_cls is HTMLElement:
             element = target_cls(tag=tag, self_closing=self_closing)
         else:
             try:
                 element = target_cls()
             except TypeError:
-                # Fallback for subclasses that require tag
                 element = target_cls(tag=tag, self_closing=self_closing)
+            if "self_closing" in data:
+                element._self_closing = self_closing
         element._attributes = dict(attributes)
 
-        if text:
-            element._text = text
-
-        if children_data:
-            for child_data in children_data:
-                child = HTMLElement.from_dict(
+        nodes: List[Union[HTMLElement, str]] = [text] if text else []
+        for child_data in children_data:
+            if isinstance(child_data, str):
+                if child_data:
+                    nodes.append(child_data)
+                continue
+            nodes.append(
+                HTMLElement.from_dict(
                     child_data,
                     _depth=_depth + 1,
                     max_depth=max_depth,
+                    allow_partial_files=allow_partial_files,
                 )
-                element._children.append(child)
+            )
+        element._children = nodes
 
         return element
 
     @classmethod
-    def from_json(cls, json_str: str) -> "HTMLElement":
+    def from_json(
+        cls, json_str: str, allow_partial_files: bool = False
+    ) -> "HTMLElement":
         """Reconstruct an element tree from a ``to_json()`` result.
 
         Args:
             json_str: JSON previously produced by ``to_json()``.
+            allow_partial_files: See ``from_dict()``.
 
         Returns:
             Reconstructed ``HTMLElement`` (or registered subclass).
@@ -1168,7 +1314,7 @@ class HTMLElement:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON string: {e}")
 
-        return cls.from_dict(data)
+        return cls.from_dict(data, allow_partial_files=allow_partial_files)
 
 
 # Tag registry for subclass reconstruction in from_dict()

@@ -51,21 +51,14 @@ class Fragment(HTMLElement):
 
         self.on_before_render()
 
-        # Render only children, not the fragment tag itself
-        if pretty:
-            result = "".join(
-                child.render(pretty=True, _indent=_indent, max_depth=max_depth)
-                for child in self._children
+        result = "".join(
+            (
+                html_module.escape(node)
+                if isinstance(node, str)
+                else node.render(pretty=pretty, _indent=_indent, max_depth=max_depth)
             )
-        else:
-            result = "".join(
-                child.render(pretty=False, _indent=_indent, max_depth=max_depth)
-                for child in self._children
-            )
-
-        # Include text content if any
-        if self._text:
-            result = html_module.escape(self._text) + result
+            for node in self._children
+        )
 
         self.on_after_render()
         return result

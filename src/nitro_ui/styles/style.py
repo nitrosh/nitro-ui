@@ -2,14 +2,98 @@
 
 import copy
 import re
-from typing import Dict, Any
+from typing import Dict, Any, Optional, Tuple
 
-from nitro_ui.core.element import _validate_css_value
+from nitro_ui.core.element import _validate_css_property, _validate_css_value
 
-# Valid CSS property name: standard ident or a custom property (``--name``).
-# Mirrors the pattern enforced in ``stylesheet.py`` so untrusted dicts can't
-# smuggle at-rules or brace sequences in through property keys.
-_VALID_CSS_PROPERTY_PATTERN = re.compile(r"^(--)?[a-zA-Z][a-zA-Z0-9-]*$")
+BREAKPOINTS = ("xs", "sm", "md", "lg", "xl", "2xl")
+
+FUNCTIONAL_PSEUDOS = frozenset(
+    {
+        "nth-child",
+        "nth-last-child",
+        "nth-of-type",
+        "nth-last-of-type",
+        "not",
+        "is",
+        "where",
+        "has",
+        "lang",
+        "dir",
+    }
+)
+
+_PSEUDO_NAME_PATTERN = re.compile(r"^[a-z][a-z-]*$")
+_PSEUDO_ARG_PATTERN = re.compile(r"^[a-zA-Z0-9_+\-.,:#() ]+$")
+_PSEUDO_KEY_PATTERN = re.compile(r"^([a-z][a-z-]*)(?:\((.*)\))?$")
+_BREAKPOINT_NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
+def _balanced(text: str) -> bool:
+    depth = 0
+    for char in text:
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth < 0:
+                return False
+    return depth == 0
+
+
+def _pseudo_key(name: str, arg: Optional[str] = None) -> str:
+    """Build a validated pseudo-selector key like ``hover`` or ``nth-child(2n)``.
+
+    Raises:
+        ValueError: If the name or argument is unsafe, a functional
+            pseudo-class has no argument, or a plain one is given one.
+    """
+    if not isinstance(name, str) or not _PSEUDO_NAME_PATTERN.match(name):
+        raise ValueError(
+            f"Invalid pseudo-selector name: {name!r}. Use lowercase letters "
+            "and hyphens only (e.g. 'hover', 'focus-visible')."
+        )
+    if name in FUNCTIONAL_PSEUDOS:
+        if arg is None or str(arg).strip() == "":
+            raise ValueError(
+                f"Pseudo-selector ':{name}()' needs an argument. Pass a tuple, "
+                f"e.g. _{name.replace('-', '_')}=(\"2n+1\", CSSStyle(...))."
+            )
+        arg = str(arg).strip()
+        if not _PSEUDO_ARG_PATTERN.match(arg) or not _balanced(arg):
+            raise ValueError(f"Invalid argument for ':{name}()': {arg!r}.")
+        return f"{name}({arg})"
+    if arg is not None:
+        raise ValueError(f"Pseudo-selector ':{name}' does not take an argument.")
+    return name
+
+
+def _parse_pseudo_key(key: str) -> Tuple[str, Optional[str]]:
+    """Split a stored pseudo key back into ``(name, arg)`` and validate it."""
+    match = _PSEUDO_KEY_PATTERN.match(key) if isinstance(key, str) else None
+    if not match:
+        raise ValueError(f"Invalid pseudo-selector: {key!r}.")
+    name, arg = match.group(1), match.group(2)
+    _pseudo_key(name, arg)
+    return name, arg
+
+
+def _validate_breakpoint_name(name: str) -> str:
+    if not isinstance(name, str) or not _BREAKPOINT_NAME_PATTERN.match(name):
+        raise ValueError(
+            f"Invalid breakpoint name: {name!r}. Use letters, digits, "
+            "underscores, or hyphens."
+        )
+    return name
+
+
+def _check_property(name: str) -> str:
+    if not _validate_css_property(name):
+        raise ValueError(
+            f"Invalid CSS property name: {name!r}. Property names must be "
+            "a standard CSS identifier or a custom property starting with '--'."
+        )
+    return name
 
 
 class CSSStyle:
@@ -32,49 +116,92 @@ class CSSStyle:
         'background-color: #007bff; color: white'
     """
 
+    _KNOWN_PSEUDOS = frozenset(
+        {
+            "hover",
+            "active",
+            "focus",
+            "focus-visible",
+            "focus-within",
+            "visited",
+            "link",
+            "first-child",
+            "last-child",
+            "only-child",
+            "first-of-type",
+            "last-of-type",
+            "checked",
+            "disabled",
+            "enabled",
+            "empty",
+            "placeholder",
+            "before",
+            "after",
+        }
+    )
+
     def __init__(self, **kwargs):
         """Create a CSSStyle from keyword arguments.
 
         Args:
             **kwargs: CSS declarations as ``property=value`` pairs.
                 Underscores in names become hyphens
-                (``background_color`` -> ``background-color``). Values
+                (``background_color`` -> ``background-color``). Keys
                 starting with an underscore and assigned a ``CSSStyle``
-                are routed to the pseudo-selector or breakpoint maps:
-                ``_hover``, ``_active``, ``_focus``, ``_visited``,
-                ``_link``, ``_first_child``, ``_last_child``,
-                ``_nth_child``, ``_before``, ``_after``, plus
-                breakpoints ``_xs``, ``_sm``, ``_md``, ``_lg``, ``_xl``,
-                ``_2xl``.
+                become breakpoints (``_xs``, ``_sm``, ``_md``, ``_lg``,
+                ``_xl``, ``_2xl``) or pseudo-selectors (``_hover``,
+                ``_focus_visible``, ``_first_child``, ``_before``, ...).
+                Functional pseudo-classes take an ``(argument, CSSStyle)``
+                tuple, e.g. ``_nth_child=("2n+1", CSSStyle(...))``.
+                ``None`` values are skipped.
+
+        Raises:
+            ValueError: If a property or pseudo-selector name is invalid,
+                or a functional pseudo-class is missing its argument.
+            TypeError: If a pseudo-selector or breakpoint key is given
+                something other than a ``CSSStyle``.
         """
         self._styles: Dict[str, str] = {}
         self._pseudo: Dict[str, "CSSStyle"] = {}
         self._breakpoints: Dict[str, "CSSStyle"] = {}
 
-        # Known pseudo-selectors
-        PSEUDO_SELECTORS = {
-            "_hover",
-            "_active",
-            "_focus",
-            "_visited",
-            "_link",
-            "_first_child",
-            "_last_child",
-            "_nth_child",
-            "_before",
-            "_after",
-        }
-
-        BREAKPOINTS = {"_xs", "_sm", "_md", "_lg", "_xl", "_2xl"}
-
         for key, value in kwargs.items():
-            if isinstance(value, CSSStyle):
-                if key in PSEUDO_SELECTORS:
-                    self._pseudo[key[1:].replace("_", "-")] = value
-                elif key in BREAKPOINTS:
-                    self._breakpoints[key[1:]] = value
+            if value is None:
+                continue
+            name = key[1:].replace("_", "-") if key.startswith("_") else None
+
+            if name and name[0].isdigit() and name not in BREAKPOINTS:
+                raise ValueError(
+                    f"Unknown breakpoint {key!r}. Use one of: "
+                    + ", ".join(f"_{bp}" for bp in BREAKPOINTS)
+                )
+            if name in BREAKPOINTS:
+                if not isinstance(value, CSSStyle):
+                    raise TypeError(
+                        f"Breakpoint {key!r} expects a CSSStyle, "
+                        f"got {type(value).__name__}."
+                    )
+                self._breakpoints[name] = value
+            elif isinstance(value, tuple) and name is not None:
+                if len(value) != 2 or not isinstance(value[1], CSSStyle):
+                    raise TypeError(
+                        f"Pseudo-selector {key!r} expects (argument, CSSStyle)."
+                    )
+                self._pseudo[_pseudo_key(name, value[0])] = value[1]
+            elif isinstance(value, CSSStyle):
+                if name is None:
+                    raise TypeError(
+                        f"{key!r} holds a CSSStyle but isn't a pseudo-selector "
+                        "or breakpoint. Prefix it with an underscore, e.g. _hover."
+                    )
+                self._pseudo[_pseudo_key(name)] = value
+            elif name in self._KNOWN_PSEUDOS or name in FUNCTIONAL_PSEUDOS:
+                raise TypeError(
+                    f"Pseudo-selector {key!r} expects a CSSStyle, "
+                    f"got {type(value).__name__}."
+                )
             else:
-                self._styles[self._to_css_prop(key)] = str(value)
+                self._styles[_check_property(self._to_css_prop(key))] = str(value)
 
     def _to_css_prop(self, prop: str) -> str:
         """
@@ -147,12 +274,7 @@ class CSSStyle:
         if not self._styles:
             return ""
         for key, value in self._styles.items():
-            if not _VALID_CSS_PROPERTY_PATTERN.match(key):
-                raise ValueError(
-                    f"Invalid CSS property name: {key!r}. Property names "
-                    "must be a standard CSS identifier or a custom property "
-                    "starting with '--'."
-                )
+            _check_property(key)
             if not _validate_css_value(str(value)):
                 raise ValueError(
                     f"CSS value for '{key}' contains potentially dangerous content: "
@@ -197,21 +319,20 @@ class CSSStyle:
                 a valid CSS identifier.
         """
         style = cls()
-        raw_styles = dict(data.get("styles", {}))
-        for key in raw_styles:
-            if not _VALID_CSS_PROPERTY_PATTERN.match(key):
+        for key, value in dict(data.get("styles", {})).items():
+            if not _validate_css_property(key):
                 raise ValueError(
                     f"Invalid CSS property name in serialized data: {key!r}."
                 )
-        style._styles = raw_styles
+            if value is not None:
+                style._styles[key] = value
 
-        if "pseudo" in data:
-            for key, value in data["pseudo"].items():
-                style._pseudo[key] = cls.from_dict(value)
+        for key, value in data.get("pseudo", {}).items():
+            _parse_pseudo_key(key)
+            style._pseudo[key] = cls.from_dict(value)
 
-        if "breakpoints" in data:
-            for key, value in data["breakpoints"].items():
-                style._breakpoints[key] = cls.from_dict(value)
+        for key, value in data.get("breakpoints", {}).items():
+            style._breakpoints[_validate_breakpoint_name(key)] = cls.from_dict(value)
 
         return style
 
@@ -238,10 +359,11 @@ class CSSStyle:
 
     def __repr__(self) -> str:
         """Return a debug representation showing the inline form."""
-        return f"CSSStyle({self.to_inline()})"
+        inline = "; ".join(f"{k}: {v}" for k, v in self._styles.items())
+        return f"CSSStyle({inline})"
 
     def __eq__(self, other: object) -> bool:
-        """Return ``True`` if both styles have identical base, pseudo, and breakpoint maps."""
+        """Return ``True`` if base, pseudo, and breakpoint maps all match."""
         if not isinstance(other, CSSStyle):
             return False
         return (

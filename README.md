@@ -355,7 +355,7 @@ Head(
 Partial(file="partials/analytics.html")
 ```
 
-**Warning:** `Partial` bypasses HTML escaping. Only use with trusted content.
+**Warning:** `Partial` bypasses HTML escaping. Only use with trusted content. When loading serialized JSON, file-backed partials are refused unless you pass `allow_partial_files=True`.
 
 ### CSS Style Helpers
 
@@ -384,8 +384,8 @@ Import all elements with `from nitro_ui import *`:
 ## Element API
 
 **Manipulation**
-- `append(*children)` / `prepend(*children)` - Add children
-- `clear()` - Remove all children
+- `append(*children)` / `prepend(*children)` - Add children. Text and elements keep their order, so `Paragraph("Hi ", Strong("you"), "!")` renders `<p>Hi <strong>you</strong>!</p>`
+- `clear()` - Remove all child elements
 - `clone()` - Deep copy element
 - `find_by_attribute(attr, value)` - Find child by attribute
 
@@ -393,7 +393,7 @@ Import all elements with `from nitro_ui import *`:
 - `add_attribute(key, value)` / `add_attributes(list)`
 - `get_attribute(key)` / `has_attribute(key)`
 - `remove_attribute(key)`
-- HTML5 boolean attributes (`disabled`, `checked`, `required`, etc.) render correctly: `True` renders as a bare attribute, `False` omits it, `None` omits it
+- HTML5 boolean attributes (`disabled`, `checked`, `required`, etc.) render correctly: `True` renders as a bare attribute, `False` omits it, `None` omits it. On other attributes `True`/`False` render as `"true"`/`"false"`
 - SVG camelCase attributes are supported via snake_case kwargs: `view_box` renders as `viewBox`, `preserve_aspect_ratio` as `preserveAspectRatio`, etc.
 
 **Styles**

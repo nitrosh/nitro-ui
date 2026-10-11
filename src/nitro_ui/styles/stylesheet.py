@@ -3,35 +3,19 @@
 import re
 from typing import Dict, Optional, List, TYPE_CHECKING
 
-from .style import CSSStyle
-from nitro_ui.core.element import _validate_css_value
+from .style import CSSStyle, _parse_pseudo_key, _validate_breakpoint_name
+from nitro_ui.core.element import _validate_css_property, _validate_css_value
 
 if TYPE_CHECKING:
     from .theme import Theme
 
 
-# Valid CSS class name pattern: must start with letter, underscore, or hyphen
-# followed by letters, digits, underscores, or hyphens
+# A class block must start with a letter, underscore, or hyphen. BEM element
+# and modifier parts may also start with a digit (``col--2``).
 _VALID_CLASS_NAME_PATTERN = re.compile(r"^-?[_a-zA-Z][_a-zA-Z0-9-]*$")
+_VALID_BEM_PART_PATTERN = re.compile(r"^[_a-zA-Z0-9-]*$")
 
-# Valid CSS property name pattern: a standard ident, or a CSS custom property
-# (``--name``). Blocks at-rules, braces, semicolons, and whitespace from being
-# smuggled in via dict keys (e.g. ``"@import url(evil); color"``).
-_VALID_CSS_PROPERTY_PATTERN = re.compile(r"^(--)?[a-zA-Z][a-zA-Z0-9-]*$")
-
-
-def _validate_css_property(name: str) -> bool:
-    """Validate that a CSS property name is safe for CSS output.
-
-    Args:
-        name: The CSS property name to validate.
-
-    Returns:
-        True if valid, False otherwise.
-    """
-    if not name or not isinstance(name, str):
-        return False
-    return bool(_VALID_CSS_PROPERTY_PATTERN.match(name))
+_BREAKPOINT_VALUE_PATTERN = re.compile(r"^(\d+|\d*\.\d+)([a-zA-Z]+|%)?$")
 
 
 def _sanitize_css_property(name: str) -> str:
@@ -66,10 +50,25 @@ def _validate_class_name(name: str) -> bool:
     """
     if not name or not isinstance(name, str):
         return False
-    # Check for BEM naming (allows __ and --)
-    # Split by BEM separators and validate each part
-    parts = re.split(r"__|--", name)
-    return all(_VALID_CLASS_NAME_PATTERN.match(part) for part in parts if part)
+    block, *rest = re.split(r"__|--", name)
+    if block and not _VALID_CLASS_NAME_PATTERN.match(block):
+        return False
+    return all(_VALID_BEM_PART_PATTERN.match(part) for part in rest)
+
+
+def _sanitize_breakpoint_value(value: str) -> str:
+    """Return a breakpoint width if it is a plain CSS length, else raise.
+
+    Raises:
+        ValueError: If ``value`` isn't a number with an optional unit.
+    """
+    text = str(value).strip()
+    if not _BREAKPOINT_VALUE_PATTERN.match(text):
+        raise ValueError(
+            f"Invalid breakpoint value: {value!r}. Use a plain length such "
+            "as '640px' or '40em'."
+        )
+    return text
 
 
 def _sanitize_css_value(value: str) -> str:
@@ -166,6 +165,8 @@ class StyleSheet:
 
         # Generate class name if not provided
         if name is None:
+            while f"s-{self._counter}" in self._classes:
+                self._counter += 1
             name = f"s-{self._counter}"
             self._counter += 1
         else:
@@ -174,7 +175,8 @@ class StyleSheet:
                 raise ValueError(
                     f"Invalid CSS class name: {name!r}. Class names must start with "
                     "a letter, underscore, or hyphen, followed by letters, digits, "
-                    "underscores, or hyphens. BEM notation (__ and --) is allowed."
+                    "underscores, or hyphens. BEM notation (__ and --) is allowed, and "
+                    "BEM elements and modifiers may start with a digit."
                 )
 
         # Store the style
@@ -252,8 +254,13 @@ class StyleSheet:
         Args:
             name: Breakpoint key (e.g. ``"sm"``, ``"md"``).
             value: CSS length string (e.g. ``"640px"``).
+
+        Raises:
+            ValueError: If the name or value isn't safe to emit.
         """
-        self._breakpoint_values[name] = value
+        self._breakpoint_values[_validate_breakpoint_name(name)] = (
+            _sanitize_breakpoint_value(value)
+        )
 
     def _render_class_styles(
         self, class_name: str, style: CSSStyle, indent: int = 2
@@ -286,6 +293,7 @@ class StyleSheet:
 
         # Pseudo-selectors
         for pseudo, pseudo_style in style._pseudo.items():
+            _parse_pseudo_key(pseudo)
             if pseudo_style._styles:
                 css_lines.append(f".{class_name}:{pseudo} {{")
                 for prop, value in pseudo_style._styles.items():
@@ -299,7 +307,14 @@ class StyleSheet:
         # Responsive breakpoints
         for breakpoint, bp_style in style._breakpoints.items():
             if bp_style._styles:
-                min_width = self._breakpoint_values.get(breakpoint, "0px")
+                if breakpoint not in self._breakpoint_values:
+                    raise ValueError(
+                        f"Unknown breakpoint {breakpoint!r} on class "
+                        f"{class_name!r}. Define it with set_breakpoint()."
+                    )
+                min_width = _sanitize_breakpoint_value(
+                    self._breakpoint_values[breakpoint]
+                )
                 css_lines.append(f"@media (min-width: {min_width}) {{")
                 css_lines.append(f"{indent_str}.{class_name} {{")
                 for prop, value in bp_style._styles.items():
@@ -413,7 +428,9 @@ class StyleSheet:
 
         # Restore breakpoints
         if "breakpoints" in data:
-            stylesheet._breakpoint_values = data["breakpoints"].copy()
+            stylesheet._breakpoint_values = {}
+            for name, value in data["breakpoints"].items():
+                stylesheet.set_breakpoint(name, value)
 
         # Restore classes (validate class names on deserialization)
         if "classes" in data:

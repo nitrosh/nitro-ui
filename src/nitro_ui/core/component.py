@@ -39,8 +39,15 @@ class Component(HTMLElement):
         # </div>
     """
 
-    tag: str = "div"
+    _component_tag: str = "div"
     class_name: str = None
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        declared = cls.__dict__.get("tag")
+        if isinstance(declared, str):
+            cls._component_tag = declared
+            cls.tag = HTMLElement.tag
 
     def __init__(self, *args, **kwargs):
         # Get template method signature to identify props
@@ -115,7 +122,7 @@ class Component(HTMLElement):
             html_attrs["class_name"] = default_class
 
         # Initialize the base HTMLElement
-        super().__init__(tag=self.__class__.tag, **html_attrs)
+        super().__init__(tag=self._component_tag, **html_attrs)
 
         # Process template result, replacing slots with content
         has_default_slot = self._has_default_slot(template_result)
@@ -216,7 +223,7 @@ class Component(HTMLElement):
             elif isinstance(item, HTMLElement):
                 # Recursively process children of this element
                 processed_children = self._process_template(
-                    item.children,
+                    item.nodes,
                     slot_content,
                     default_slot_children,
                 )

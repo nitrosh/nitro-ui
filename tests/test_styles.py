@@ -1,5 +1,7 @@
 """Tests for NitroUI styling system."""
 
+import pytest
+
 from nitro_ui.styles import CSSStyle, StyleSheet, Theme
 
 
@@ -406,3 +408,204 @@ class TestIntegration:
         assert ".card__header {" in css
         assert ".card__body {" in css
         assert ".card--featured {" in css
+
+
+class TestPseudoValidation:
+    def test_from_dict_rejects_pseudo_breakout(self):
+        data = {
+            "styles": {},
+            "pseudo": {"hover{}</style><script>": {"styles": {"color": "red"}}},
+        }
+        with pytest.raises(ValueError):
+            CSSStyle.from_dict(data)
+
+    def test_render_rejects_tampered_pseudo(self):
+        style = CSSStyle(color="red")
+        style._pseudo["hover{}</style>"] = CSSStyle(color="blue")
+        sheet = StyleSheet()
+        sheet.register("x", style)
+        with pytest.raises(ValueError):
+            sheet.render()
+
+    def test_snake_case_pseudo_names(self):
+        style = CSSStyle(_focus_visible=CSSStyle(outline="none"))
+        sheet = StyleSheet()
+        sheet.register("x", style)
+        assert ".x:focus-visible {" in sheet.render()
+
+    def test_pseudo_with_non_style_value_raises(self):
+        with pytest.raises(TypeError):
+            CSSStyle(_hover="red")
+
+    def test_breakpoint_with_non_style_value_raises(self):
+        with pytest.raises(TypeError):
+            CSSStyle(_md="20px")
+
+    def test_unknown_breakpoint_raises(self):
+        with pytest.raises(ValueError):
+            CSSStyle(_3xl=CSSStyle(padding="1px"))
+
+    def test_vendor_prefixed_property_still_works(self):
+        style = CSSStyle(_webkit_appearance="none")
+        assert style.to_inline() == "-webkit-appearance: none"
+
+    def test_unregistered_breakpoint_raises_on_render(self):
+        style = CSSStyle.from_dict(
+            {"styles": {}, "breakpoints": {"tablet": {"styles": {"color": "red"}}}}
+        )
+        sheet = StyleSheet()
+        sheet.register("x", style)
+        with pytest.raises(ValueError):
+            sheet.render()
+        sheet.set_breakpoint("tablet", "900px")
+        assert "@media (min-width: 900px)" in sheet.render()
+
+
+class TestFunctionalPseudos:
+    def test_nth_child_with_argument(self):
+        style = CSSStyle(_nth_child=("2n+1", CSSStyle(color="red")))
+        sheet = StyleSheet()
+        sheet.register("row", style)
+        assert ".row:nth-child(2n+1) {" in sheet.render()
+
+    def test_not_with_selector_argument(self):
+        style = CSSStyle(_not=(".active", CSSStyle(opacity="0.5")))
+        sheet = StyleSheet()
+        sheet.register("tab", style)
+        assert ".tab:not(.active) {" in sheet.render()
+
+    def test_nth_child_without_argument_raises(self):
+        with pytest.raises(ValueError, match="needs an argument"):
+            CSSStyle(_nth_child=CSSStyle(color="red"))
+
+    @pytest.mark.parametrize("arg", ["2n}{", "1);color:red", "</style>", "2n /* x */"])
+    def test_unsafe_argument_rejected(self, arg):
+        with pytest.raises(ValueError):
+            CSSStyle(_nth_child=(arg, CSSStyle(color="red")))
+
+    def test_argument_on_plain_pseudo_rejected(self):
+        with pytest.raises(ValueError):
+            CSSStyle(_hover=("x", CSSStyle(color="red")))
+
+    def test_round_trip(self):
+        style = CSSStyle(_nth_of_type=("odd", CSSStyle(color="red")))
+        assert CSSStyle.from_dict(style.to_dict()) == style
+
+
+class TestPropertyAndValueHandling:
+    def test_none_values_skipped(self):
+        style = CSSStyle(color="red", margin=None)
+        assert style.to_inline() == "color: red"
+
+    def test_invalid_property_rejected(self):
+        with pytest.raises(ValueError):
+            CSSStyle(**{"@import url(x); color": "red"})
+
+    def test_render_rejects_tampered_property(self):
+        style = CSSStyle(color="red")
+        style._styles["} body {"] = "red"
+        sheet = StyleSheet()
+        sheet.register("x", style)
+        with pytest.raises(ValueError):
+            sheet.render()
+
+    def test_repr_never_raises(self):
+        style = CSSStyle(color="red")
+        style._styles["color"] = "red; } </style>"
+        assert repr(style).startswith("CSSStyle(")
+
+
+class TestBreakpointValues:
+    @pytest.mark.parametrize(
+        "value", ["1px) { body { color: red", "640px;", "calc(1px)", "</style>"]
+    )
+    def test_set_breakpoint_rejects_unsafe(self, value):
+        with pytest.raises(ValueError):
+            StyleSheet().set_breakpoint("md", value)
+
+    def test_from_dict_rejects_unsafe_breakpoint(self):
+        with pytest.raises(ValueError):
+            StyleSheet.from_dict({"breakpoints": {"md": "1px){}</style>"}})
+
+    def test_render_rejects_tampered_breakpoint(self):
+        sheet = StyleSheet()
+        sheet.register("x", CSSStyle(_md=CSSStyle(color="red")))
+        sheet._breakpoint_values["md"] = "1px) {"
+        with pytest.raises(ValueError):
+            sheet.render()
+
+    def test_valid_breakpoint_values(self):
+        sheet = StyleSheet()
+        sheet.set_breakpoint("md", "48em")
+        sheet.register("x", CSSStyle(_md=CSSStyle(color="red")))
+        assert "@media (min-width: 48em)" in sheet.render()
+
+
+class TestClassNames:
+    def test_auto_name_skips_registered(self):
+        sheet = StyleSheet()
+        sheet.register("s-0", CSSStyle(color="red"))
+        auto = sheet.register(style=CSSStyle(color="blue"))
+        assert auto != "s-0"
+        assert sheet.get_style("s-0")._styles["color"] == "red"
+
+    def test_bem_parts_may_start_with_digit(self):
+        sheet = StyleSheet()
+        assert sheet.register("col--2") == "col--2"
+        assert sheet.register("a--1") == "a--1"
+        assert sheet.register_bem("grid", "col", "12") == "grid__col--12"
+
+    @pytest.mark.parametrize("name", ["1col", "col--2{}", "a__b c", "-1x"])
+    def test_invalid_names_still_rejected(self, name):
+        with pytest.raises(ValueError):
+            StyleSheet().register(name)
+
+
+class TestThemeFixes:
+    def test_numeric_typography_tokens(self):
+        theme = Theme(typography={"line-height": 1.5, "weight": 700, "flag": True})
+        variables = theme.get_css_variables()
+        assert variables["--font-line-height"] == "1.5"
+        assert variables["--font-weight"] == "700"
+        assert "--font-flag" not in variables
+
+    def test_variant_named_styles_round_trips(self):
+        theme = Theme(
+            components={
+                "button": {
+                    "styles": CSSStyle(color="red"),
+                    "primary": CSSStyle(color="blue"),
+                },
+                "card": CSSStyle(padding="1px"),
+            }
+        )
+        restored = Theme.from_dict(theme.to_dict())
+        assert restored.components["button"]["styles"] == CSSStyle(color="red")
+        assert restored.components["button"]["primary"] == CSSStyle(color="blue")
+        assert restored.components["card"] == CSSStyle(padding="1px")
+
+    def test_old_variant_format_still_loads(self):
+        data = {
+            "components": {
+                "button": {"primary": {"styles": {"color": "red"}}},
+                "card": {"styles": {"padding": "1px"}},
+            }
+        }
+        theme = Theme.from_dict(data)
+        assert theme.components["button"]["primary"] == CSSStyle(color="red")
+        assert theme.components["card"] == CSSStyle(padding="1px")
+
+    def test_to_dict_deep_copies_typography(self):
+        theme = Theme.modern()
+        data = theme.to_dict()
+        data["typography"]["sizes"]["xs"] = "99px"
+        assert theme.typography["sizes"]["xs"] == "12px"
+
+    def test_constructor_copies_caller_dicts(self):
+        typography = {"sizes": {"xs": "12px"}}
+        colors = {"primary": "red"}
+        theme = Theme(colors=colors, typography=typography)
+        typography["sizes"]["xs"] = "99px"
+        colors["primary"] = "blue"
+        assert theme.typography["sizes"]["xs"] == "12px"
+        assert theme.colors["primary"] == "red"

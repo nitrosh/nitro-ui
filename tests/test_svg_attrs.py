@@ -24,28 +24,20 @@ class TestSVGParserCamelCase(unittest.TestCase):
 
     def test_preserve_aspect_ratio(self):
         """preserveAspectRatio should survive parse + render."""
-        el = from_html(
-            '<svg preserveAspectRatio="xMidYMid meet"></svg>'
-        )
+        el = from_html('<svg preserveAspectRatio="xMidYMid meet"></svg>')
         rendered = el.render()
         self.assertIn('preserveAspectRatio="xMidYMid meet"', rendered)
 
     def test_gradient_units(self):
         """gradientUnits should survive parse + render."""
-        html = (
-            '<linearGradient gradientUnits="userSpaceOnUse">'
-            "</linearGradient>"
-        )
+        html = '<linearGradient gradientUnits="userSpaceOnUse">' "</linearGradient>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('gradientUnits="userSpaceOnUse"', rendered)
 
     def test_gradient_transform(self):
         """gradientTransform should survive parse + render."""
-        html = (
-            '<linearGradient gradientTransform="rotate(90)">'
-            "</linearGradient>"
-        )
+        html = '<linearGradient gradientTransform="rotate(90)">' "</linearGradient>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('gradientTransform="rotate(90)"', rendered)
@@ -59,42 +51,28 @@ class TestSVGParserCamelCase(unittest.TestCase):
 
     def test_spread_method(self):
         """spreadMethod should survive parse + render."""
-        html = (
-            '<radialGradient spreadMethod="pad">'
-            "</radialGradient>"
-        )
+        html = '<radialGradient spreadMethod="pad">' "</radialGradient>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('spreadMethod="pad"', rendered)
 
     def test_pattern_units(self):
         """patternUnits should survive parse + render."""
-        html = (
-            '<pattern patternUnits="userSpaceOnUse">'
-            "</pattern>"
-        )
+        html = '<pattern patternUnits="userSpaceOnUse">' "</pattern>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('patternUnits="userSpaceOnUse"', rendered)
 
     def test_clip_path_units(self):
         """clipPathUnits should survive parse + render."""
-        html = (
-            '<clipPath clipPathUnits="objectBoundingBox">'
-            "</clipPath>"
-        )
+        html = '<clipPath clipPathUnits="objectBoundingBox">' "</clipPath>"
         el = from_html(html)
         rendered = el.render()
-        self.assertIn(
-            'clipPathUnits="objectBoundingBox"', rendered
-        )
+        self.assertIn('clipPathUnits="objectBoundingBox"', rendered)
 
     def test_marker_dimensions(self):
         """markerWidth / markerHeight should survive."""
-        html = (
-            '<marker markerWidth="10" markerHeight="10">'
-            "</marker>"
-        )
+        html = '<marker markerWidth="10" markerHeight="10">' "</marker>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('markerWidth="10"', rendered)
@@ -110,11 +88,7 @@ class TestSVGParserCamelCase(unittest.TestCase):
 
     def test_multiple_svg_attrs_on_one_element(self):
         """Multiple SVG camelCase attrs on one element."""
-        html = (
-            '<svg viewBox="0 0 100 100" '
-            'preserveAspectRatio="xMidYMid">'
-            "</svg>"
-        )
+        html = '<svg viewBox="0 0 100 100" ' 'preserveAspectRatio="xMidYMid">' "</svg>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('viewBox="0 0 100 100"', rendered)
@@ -122,11 +96,7 @@ class TestSVGParserCamelCase(unittest.TestCase):
 
     def test_mixed_svg_and_normal_attrs(self):
         """SVG camelCase attrs mixed with normal attrs."""
-        html = (
-            '<svg viewBox="0 0 100 100" '
-            'id="icon" class="my-svg">'
-            "</svg>"
-        )
+        html = '<svg viewBox="0 0 100 100" ' 'id="icon" class="my-svg">' "</svg>"
         el = from_html(html)
         rendered = el.render()
         self.assertIn('viewBox="0 0 100 100"', rendered)
@@ -170,9 +140,7 @@ class TestSVGElementConstruction(unittest.TestCase):
 
     def test_preserve_aspect_ratio_kwarg(self):
         """preserve_aspect_ratio -> preserveAspectRatio."""
-        el = HTMLElement(
-            tag="svg", preserve_aspect_ratio="xMidYMid"
-        )
+        el = HTMLElement(tag="svg", preserve_aspect_ratio="xMidYMid")
         rendered = el.render()
         self.assertIn('preserveAspectRatio="xMidYMid"', rendered)
 
@@ -183,9 +151,7 @@ class TestSVGElementConstruction(unittest.TestCase):
             gradient_units="userSpaceOnUse",
         )
         rendered = el.render()
-        self.assertIn(
-            'gradientUnits="userSpaceOnUse"', rendered
-        )
+        self.assertIn('gradientUnits="userSpaceOnUse"', rendered)
 
     def test_std_deviation_kwarg(self):
         """std_deviation -> stdDeviation."""
@@ -199,9 +165,7 @@ class TestSVGElementConstruction(unittest.TestCase):
 
     def test_spread_method_kwarg(self):
         """spread_method -> spreadMethod."""
-        el = HTMLElement(
-            tag="radialgradient", spread_method="pad"
-        )
+        el = HTMLElement(tag="radialgradient", spread_method="pad")
         rendered = el.render()
         self.assertIn('spreadMethod="pad"', rendered)
 
@@ -219,30 +183,22 @@ class TestSVGElementConstruction(unittest.TestCase):
 
     def test_start_offset_kwarg(self):
         """start_offset -> startOffset."""
-        el = HTMLElement(
-            tag="textpath", start_offset="50%"
-        )
+        el = HTMLElement(tag="textpath", start_offset="50%")
         rendered = el.render()
         self.assertIn('startOffset="50%"', rendered)
 
     def test_ref_x_y_kwarg(self):
         """ref_x / ref_y -> refX / refY."""
-        el = HTMLElement(
-            tag="marker", ref_x="5", ref_y="5"
-        )
+        el = HTMLElement(tag="marker", ref_x="5", ref_y="5")
         rendered = el.render()
         self.assertIn('refX="5"', rendered)
         self.assertIn('refY="5"', rendered)
 
     def test_filter_units_kwarg(self):
         """filter_units -> filterUnits."""
-        el = HTMLElement(
-            tag="filter", filter_units="userSpaceOnUse"
-        )
+        el = HTMLElement(tag="filter", filter_units="userSpaceOnUse")
         rendered = el.render()
-        self.assertIn(
-            'filterUnits="userSpaceOnUse"', rendered
-        )
+        self.assertIn('filterUnits="userSpaceOnUse"', rendered)
 
     def test_num_octaves_kwarg(self):
         """num_octaves -> numOctaves."""
@@ -266,9 +222,7 @@ class TestSVGElementConstruction(unittest.TestCase):
 
     def test_non_svg_underscore_still_hyphenated(self):
         """Normal (non-SVG) underscore attrs still become hyphens."""
-        el = HTMLElement(
-            tag="div", data_value="123", aria_label="test"
-        )
+        el = HTMLElement(tag="div", data_value="123", aria_label="test")
         rendered = el.render()
         self.assertIn('data-value="123"', rendered)
         self.assertIn('aria-label="test"', rendered)
@@ -286,9 +240,7 @@ class TestSVGGetAttribute(unittest.TestCase):
     def test_get_attribute_by_camel_name(self):
         """get_attribute with camelCase key should work."""
         el = HTMLElement(tag="svg", view_box="0 0 100 100")
-        self.assertEqual(
-            el.get_attribute("viewBox"), "0 0 100 100"
-        )
+        self.assertEqual(el.get_attribute("viewBox"), "0 0 100 100")
 
     def test_has_attribute_by_camel_name(self):
         """has_attribute with camelCase key should work."""
@@ -298,9 +250,7 @@ class TestSVGGetAttribute(unittest.TestCase):
     def test_parsed_svg_get_attribute(self):
         """Parsed SVG attrs accessible by camelCase key."""
         el = from_html('<svg viewBox="0 0 24 24"></svg>')
-        self.assertEqual(
-            el.get_attribute("viewBox"), "0 0 24 24"
-        )
+        self.assertEqual(el.get_attribute("viewBox"), "0 0 24 24")
 
 
 class TestSVGSerializationRoundtrip(unittest.TestCase):
@@ -323,9 +273,7 @@ class TestSVGSerializationRoundtrip(unittest.TestCase):
         restored = HTMLElement.from_dict(d)
         rendered = restored.render()
         self.assertIn('viewBox="0 0 100 100"', rendered)
-        self.assertIn(
-            'preserveAspectRatio="xMidYMid"', rendered
-        )
+        self.assertIn('preserveAspectRatio="xMidYMid"', rendered)
 
 
 if __name__ == "__main__":
