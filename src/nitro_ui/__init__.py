@@ -140,6 +140,67 @@ from .styles import (
     Theme,
 )
 
+# layout
+Division = Div
+Navigation = Nav
+
+# lists
+Ul = UnorderedList
+Ol = OrderedList
+Li = ListItem
+
+Dd = DescriptionDetails
+Dl = DescriptionList
+Dt = DescriptionTerm
+
+# media
+Img = Image
+
+# table
+TFoot = TableFooter
+Th = TableHeaderCell
+THead = TableHeader
+TBody = TableBody
+Td = TableDataCell
+Tr = TableRow
+
+Column = Col
+ColumnGroup = Colgroup
+
+# text
+Head1 = H1
+Head2 = H2
+Head3 = H3
+Head4 = H4
+Head5 = H5
+Head6 = H6
+
+P = Paragraph
+p = P
+Preformatted = Pre
+Q = Quote
+Emphasis = Em
+I = Italic
+Abbreviation = Abbr
+A = Anchor
+Sub = Subscript
+Sup = Superscript
+B = Bold
+Deleted = Del
+Inserted = Ins
+S = Strikethrough
+U = Underline
+KeyboardInput = Kbd
+SampleOutput = Samp
+Variable = Var
+Definition = Dfn
+Break = Br
+WordBreak = Wbr
+BiDirectionalIndependent = Bdi
+BiDirectionalOverride = Bdo
+RubyText = Rt
+RubyParenthesis = Rp
+
 __all__ = [
     "HTMLElement",
     "Fragment",
@@ -274,4 +335,57 @@ __all__ = [
     "Rt",
     "Rp",
     "Data",
+    # aliases
+    ## layout
+    "Division",
+    "Navigation",
+    ## lists
+    "Ul",
+    "Ol",
+    "Li",
+    "Dd",
+    "Dl",
+    "Dt",
+    ## media
+    "Img",
+    ## table
+    "TFoot",
+    "Th",
+    "THead",
+    "TBody",
+    "Td",
+    "Tr",
+    "Column",
+    "ColumnGroup",
+    ## text
+    "Head1",
+    "Head2",
+    "Head3",
+    "Head4",
+    "Head5",
+    "Head6",
+    "P",
+    "p",
+    "Q",
+    "Emphasis",
+    "I",
+    "Abbreviation",
+    "A",
+    "Sub",
+    "Sup",
+    "B",
+    "Deleted",
+    "Inserted",
+    "S",
+    "U",
+    "KeyboardInput",
+    "SampleOutput",
+    "Variable",
+    "Definition",
+    "Break",
+    "WordBreak",
+    "BiDirectionalIndependent",
+    "BiDirectionalOverride",
+    "RubyText",
+    "RubyParenthesis"
 ]
